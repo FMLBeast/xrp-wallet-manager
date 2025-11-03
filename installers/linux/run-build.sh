@@ -20,4 +20,7 @@ fi
 
 "$ENGINE" build -t "$IMAGE_NAME" -f "$SCRIPT_DIR/Dockerfile" "$PROJECT_ROOT"
 
-"$ENGINE" run --rm -v "$PROJECT_ROOT":/app "$IMAGE_NAME"
+USER_ID="$(id -u)"
+GROUP_ID="$(id -g)"
+
+"$ENGINE" run --rm -u "${USER_ID}:${GROUP_ID}" -v "$PROJECT_ROOT":/app "$IMAGE_NAME"
