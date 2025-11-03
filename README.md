@@ -50,6 +50,27 @@ python run.py
 # or directly: python gui.py
 ```
 
+#### Packaging installers
+
+**macOS**
+- Prerequisites: Python 3.10+, PyInstaller, Xcode command line tools for code signing.
+- Activate your virtualenv, then run `pyinstaller "XRP Wallet Manager.spec"` or `pyinstaller --windowed --name "XRP Wallet Manager" run.py`.
+- The signed `.app` bundle lands in `dist/XRP Wallet Manager.app`; create a DMG (e.g. with `create-dmg`) if you need a disk image.
+
+**Linux (native host)**
+- On a Linux workstation run `installers/linux/build.sh`. It spins up `.venv-linux/`, installs dependencies, and emits `dist-linux/XRP-Wallet-Manager/` plus the helper launcher `dist-linux/run.sh`.
+- Result is a folder-style distribution that can be tarred and shipped.
+
+**Linux (Docker on macOS/Windows)**
+- Start a Docker-compatible runtime (e.g. `colima start --arch x86_64` on Apple Silicon if you need x86_64 output).
+- Execute `installers/linux/run-build.sh`. The script builds the container image (`installers/linux/Dockerfile`) and runs the native Linux build inside it. Artifacts still appear in the host `dist-linux/` directory.
+- Stop the runtime afterwards (`colima stop`).
+
+**Windows**
+- Install Python 3.10+, the Visual Studio 2022 Build Tools (for C runtime), and `pip install pyinstaller -r requirements.txt`.
+- From an activated `venv\Scripts\activate`, run `pyinstaller --clean --noconfirm --windowed --name "XRP Wallet Manager" run.py`.
+- Bundles are written to `dist\XRP Wallet Manager\`. Optionally wrap them in an installer using your preferred tooling (MSIX, Inno Setup, etc.).
+
 On first launch you will be prompted to create a master password. This password encrypts your wallets on disk and is required every time the app starts. Keep it safe—if you lose it you will need to re-import your wallets from their original secrets.
 
 ### Configuration

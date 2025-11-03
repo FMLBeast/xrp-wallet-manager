@@ -1089,6 +1089,8 @@ class ModernXRPWalletGUI:
 
         ttk.Button(actions_frame, text="🌐 View in Explorer",
                   command=self.open_in_explorer).pack(side="left", padx=(10, 0))
+        ttk.Button(actions_frame, text="🔐 Export Secrets",
+                  command=self.export_secrets_dialog).pack(side="left", padx=(10, 0))
 
         # Network info card
         network_card = self.create_card_frame(self.wallet_frame)
@@ -2070,7 +2072,77 @@ class ModernXRPWalletGUI:
             entry = dialog.result
             self.dest_var.set(entry.get("address", ""))
             if hasattr(self, "dest_tag_var"):
-                self.dest_tag_var.set(entry.get("destination_tag", ""))
+                self.dest_tag_var.set(entry.get("destination_tag", ""))  # type: ignore[attr-defined]
+
+    def export_secrets_dialog(self):
+        confirm = messagebox.askyesno(
+            "Export Secrets",
+            "Exporting will reveal private keys. Proceed?",
+            parent=self.root,
+        )
+        if not confirm:
+            return
+
+        password = self.show_password_dialog(
+            "Authenticate",
+            "Enter your master password to decrypt secrets:",
+        )
+        if password is None:
+            return
+
+        secure_manager = MultiWalletManager()
+        try:
+            secure_manager.initialize(password)
+        except ValueError:
+            messagebox.showerror("Authentication Failed", "Incorrect master password")
+            return
+
+        export_rows = []
+        for name, wallet_data in self.multi_wallet.wallets.items():
+            secret_info = secure_manager.secret_cache.get(name)
+            if not secret_info:
+                try:
+                    _, secret_info = create_wallet_from_secret(
+                        wallet_data.secret,
+                        public_key=wallet_data.public_key,
+                        algorithm_hint=wallet_data.algorithm,
+                    )
+                except Exception:
+                    continue
+            export_rows.append({
+                "name": name,
+                "address": wallet_data.address,
+                "network": wallet_data.network,
+                "secret_type": secret_info.secret_type,
+                "secret": secret_info.secret,
+            })
+
+        filename = filedialog.asksaveasfilename(
+            title="Save Secrets CSV",
+            defaultextension=".csv",
+            filetypes=[("CSV", "*.csv"), ("Text", "*.txt"), ("All Files", "*.*")],
+        )
+        if not filename:
+            return
+
+        try:
+            import csv
+
+            with open(filename, "w", newline="") as f:
+                writer = csv.DictWriter(
+                    f,
+                    fieldnames=["name", "address", "network", "secret_type", "secret"],
+                )
+                writer.writeheader()
+                for row in export_rows:
+                    writer.writerow(row)
+            self.update_status(f"Secrets exported to {filename}")
+            messagebox.showinfo(
+                "Export Complete",
+                "Secrets exported. Keep this file secure and delete it when done.",
+            )
+        except Exception as exc:
+            messagebox.showerror("Export Failed", f"Could not export secrets:\n{exc}")
 
     def send_transaction(self):
         """Send XRP transaction"""
@@ -2643,33 +2715,36 @@ class SignerEntryDialog:
         self.dialog.transient(parent)
         self.dialog.grab_set()
 
-        frame = ttk.Frame(self.dialog, padding=20)
+        frame = ttk.Frame(self.dialog, padding=20, style="Dialog.TFrame")
         frame.pack(fill="both", expand=True)
 
-        ttk.Label(frame, text="Label", style="Heading.TLabel").pack(anchor="w")
+        ttk.Label(frame, text="Signer Label", style="DialogHeading.TLabel").pack(anchor="w")
         self.label_var = tk.StringVar(value=(initial or {}).get('label', ''))
-        ttk.Entry(frame, textvariable=self.label_var).pack(fill="x", pady=(0, 10))
+        ttk.Entry(frame, textvariable=self.label_var).pack(fill="x", pady=(0, 10), ipady=3)
 
-        addr_row = ttk.Frame(frame, style="Main.TFrame")
+        addr_row = ttk.Frame(frame, style="Dialog.TFrame")
         addr_row.pack(fill="x")
-        ttk.Label(addr_row, text="Address", style="Heading.TLabel").pack(anchor="w", side="left")
-        ttk.Button(addr_row, text="Address Book", command=self.pick_from_book).pack(side="right")
+        ttk.Label(addr_row, text="Classic Address", style="DialogHeading.TLabel").pack(anchor="w", side="left")
+        ttk.Button(addr_row, text="Address Book", command=self.pick_from_book,
+                  style="Dialog.TButton").pack(side="right")
 
         self.address_var = tk.StringVar(value=(initial or {}).get('address', ''))
-        ttk.Entry(frame, textvariable=self.address_var).pack(fill="x", pady=(0, 10))
+        ttk.Entry(frame, textvariable=self.address_var).pack(fill="x", pady=(0, 10), ipady=3)
 
-        ttk.Label(frame, text="Destination Tag (optional)", style="Heading.TLabel").pack(anchor="w")
+        ttk.Label(frame, text="Destination Tag (optional)", style="DialogHeading.TLabel").pack(anchor="w")
         self.tag_var = tk.StringVar(value=(initial or {}).get('tag', '') or (initial or {}).get('destination_tag', ''))
-        ttk.Entry(frame, textvariable=self.tag_var).pack(fill="x", pady=(0, 10))
+        ttk.Entry(frame, textvariable=self.tag_var).pack(fill="x", pady=(0, 10), ipady=3)
 
-        ttk.Label(frame, text="Weight", style="Heading.TLabel").pack(anchor="w")
+        ttk.Label(frame, text="Signer Weight", style="DialogHeading.TLabel").pack(anchor="w")
         self.weight_var = tk.StringVar(value=str((initial or {}).get('weight', 1)))
-        ttk.Entry(frame, textvariable=self.weight_var).pack(fill="x", pady=(0, 10))
+        ttk.Entry(frame, textvariable=self.weight_var).pack(fill="x", pady=(0, 10), ipady=3)
 
-        buttons = ttk.Frame(frame)
+        buttons = ttk.Frame(frame, style="Dialog.TFrame")
         buttons.pack(fill="x", pady=(10, 0))
-        ttk.Button(buttons, text="Cancel", command=self.cancel).pack(side="right", padx=(10, 0))
-        ttk.Button(buttons, text="Save", command=self.save).pack(side="right")
+        ttk.Button(buttons, text="Cancel", command=self.cancel,
+                  style="Dialog.TButton").pack(side="right", padx=(10, 0))
+        ttk.Button(buttons, text="Save", command=self.save,
+                  style="DialogPrimary.TButton").pack(side="right")
 
         self.dialog.bind("<Return>", lambda _: self.save())
         self.dialog.bind("<Escape>", lambda _: self.cancel())
