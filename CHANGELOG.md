@@ -4,6 +4,9 @@ All notable changes to the XRP Wallet Manager will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- GitHub Actions CI now packages Linux (amd64, arm64) and macOS builds and publishes them as workflow artifacts.
+
 ### Removed
 - Legacy `.env`-based wallet loading and the `python-dotenv` dependency—wallet secrets now live exclusively in the encrypted store.
 - The `.env.example` template, which is no longer required.

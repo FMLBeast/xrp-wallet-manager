@@ -48,6 +48,48 @@ jobs:
           LINUX_BUILDER_PLATFORM: ${{ matrix.platform }}
         run: |
           installers/linux/run-build.sh
+      - name: Determine arch label
+        id: arch
+        shell: bash
+        run: |
+          arch="${{ matrix.platform }}"
+          arch="${arch##*/}"
+          echo "label=$arch" >> "$GITHUB_OUTPUT"
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-${{ steps.arch.outputs.label }}
+          path: dist-linux/${{ steps.arch.outputs.label }}
+          if-no-files-found: error
       - name: Clean build artifacts
         run: |
           rm -rf dist-linux build-linux .venv-linux*
+
+  macos-build:
+    name: macOS packaging smoke test
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+      - name: Build macOS app bundle
+        run: |
+          source venv/bin/activate
+          python -m PyInstaller "XRP Wallet Manager.spec"
+      - name: Package macOS app
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent "dist/XRP Wallet Manager.app" dist/XRP-Wallet-Manager-macos.zip
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-app
+          path: dist/XRP-Wallet-Manager-macos.zip

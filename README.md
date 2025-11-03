@@ -96,7 +96,12 @@ LINUX_BUILDER_PLATFORM=linux/arm64 installers/linux/run-build.sh
 
 ### Continuous integration builds
 
-Every push and pull request triggers the GitHub Actions workflow [`CI`](https://github.com/FMLBeast/xrp-wallet-manager/actions/workflows/ci.yml), which produces Linux bundles for both `linux/amd64` and `linux/arm64`. You can download the artifacts directly from the workflow run summary, or promote them into a release without rebuilding locally.
+Every push and pull request triggers the GitHub Actions workflow [`CI`](https://github.com/FMLBeast/xrp-wallet-manager/actions/workflows/ci.yml), which currently produces:
+
+- `linux-<arch>` artifacts for both `linux/amd64` and `linux/arm64` (folder-style PyInstaller bundles).
+- `macos-app` – a zipped `.app` bundle ready for notarisation or DMG packaging.
+
+Download the artifacts from the workflow run summary or promote them into a release without rebuilding locally.
 
 **Windows**
 - Install Python 3.10+, the Visual Studio 2022 Build Tools (for C runtime), and `pip install pyinstaller -r requirements.txt`.
