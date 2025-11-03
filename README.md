@@ -10,6 +10,7 @@ A comprehensive XRP wallet management application built with Python and tkinter,
 - **Secure Key Input**: Private keys requested on-demand, not stored in files
 - **Wallet Switching**: Easy switching between different wallets
 - **Smart Wallet Cards**: Visual wallet overview with balances and network info
+- **Persistent Wallets**: Secrets saved locally so wallets survive app restarts (see security notes)
 
 ### Core Functionality
 - **Full Wallet Management**: Send/receive XRP, check balances, view transaction history
@@ -36,7 +37,7 @@ A comprehensive XRP wallet management application built with Python and tkinter,
 
 4. **Configure your wallet:**
    - Copy `.env.example` to `.env`
-   - Add your private key to the `PRIVATE_KEY` field in `.env`
+   - Add your seed or private key to the `WALLET_SECRET` field in `.env`
    - Set `NETWORK` to either `testnet` or `mainnet`
 
 ## Usage
@@ -49,13 +50,17 @@ python run.py
 # or directly: python gui.py
 ```
 
+On first launch you will be prompted to create a master password. This password encrypts your wallets on disk and is required every time the app starts. Keep it safe—if you lose it you will need to re-import your wallets from their original secrets.
+
 ### Configuration
 
 Edit the `.env` file with your settings:
 
 ```env
-# Your XRP wallet private key (64-character hex string)
-PRIVATE_KEY=your_private_key_here
+# Your XRP wallet secret (family seed starting with 's' or hex private key)
+WALLET_SECRET=your_seed_or_private_key_here
+# Legacy fallback name for backwards compatibility
+PRIVATE_KEY=
 
 # Network (testnet for development, mainnet for production)
 NETWORK=testnet
@@ -133,7 +138,9 @@ This application supports creating and managing multi-signature wallets:
 
 - **Never share your private key** with anyone
 - **Keep your .env file secure** and never commit it to version control
+- **Protect `data/wallets.enc`** – the GUI stores encrypted secrets here; keep it private and backed up.
 - **Use testnet for development** and testing
+- **Master password is required** – it encrypts `data/wallets.enc`. Losing it means you must restore wallets from the original seed/private key backups.
 - **Verify addresses carefully** before sending transactions
 
 ### XRP Ledger Requirements
