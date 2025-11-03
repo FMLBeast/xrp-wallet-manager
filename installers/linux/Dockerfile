@@ -5,7 +5,17 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-RUN apt-get update && \
+RUN set -eux; \
+    rm -rf /var/lib/apt/lists/*; \
+    for attempt in 1 2 3; do \
+      if apt-get update; then \
+        break; \
+      elif [ "$attempt" = "3" ]; then \
+        exit 1; \
+      else \
+        sleep 5; \
+      fi; \
+    done; \
     apt-get install -y --no-install-recommends \
       python3 python3-venv python3-pip python3-tk \
       libpython3.10 \
@@ -13,7 +23,7 @@ RUN apt-get update && \
       ca-certificates \
       curl \
       tk-dev \
-      git && \
+      git; \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
