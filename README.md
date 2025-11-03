@@ -75,13 +75,22 @@ python run.py
 - The signed `.app` bundle lands in `dist/XRP Wallet Manager.app`; create a DMG (e.g. with `create-dmg`) if you need a disk image.
 
 **Linux (native host)**
-- On a Linux workstation run `installers/linux/build.sh`. It spins up `.venv-linux/`, installs dependencies, and emits `dist-linux/XRP-Wallet-Manager/` plus the helper launcher `dist-linux/run.sh`.
+- On a Linux workstation run `installers/linux/build.sh`. It creates an isolated build environment and writes artifacts beneath `dist-linux/<arch>/` (for example, `dist-linux/x86_64/`).
 - Result is a folder-style distribution that can be tarred and shipped.
 
 **Linux (Docker on macOS/Windows)**
 - Start a Docker-compatible runtime (e.g. `colima start --arch x86_64` on Apple Silicon if you need x86_64 output).
-- Execute `installers/linux/run-build.sh`. The script builds the container image (`installers/linux/Dockerfile`) and runs the native Linux build inside it. Artifacts still appear in the host `dist-linux/` directory.
+- Execute `installers/linux/run-build.sh`. The script builds the container image (`installers/linux/Dockerfile`) and runs the native Linux build inside it. Artifacts appear in the host `dist-linux/<arch>/` directory.
 - Stop the runtime afterwards (`colima stop`).
+- To target a specific architecture, set `LINUX_BUILDER_PLATFORM` before running the script (examples below). Multiple runs can co-exist in different subdirectories.
+
+```bash
+# Build for amd64 (default on x86 hosts)
+installers/linux/run-build.sh
+
+# Cross-build for arm64 from any host with buildx/qemu available
+LINUX_BUILDER_PLATFORM=linux/arm64 installers/linux/run-build.sh
+```
 
 **Windows**
 - Install Python 3.10+, the Visual Studio 2022 Build Tools (for C runtime), and `pip install pyinstaller -r requirements.txt`.

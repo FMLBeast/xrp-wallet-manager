@@ -2,10 +2,10 @@
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. && pwd)"
-DIST_DIR="$PROJECT_ROOT/dist-linux"
-BUILD_ROOT="$PROJECT_ROOT/build-linux"
-VENV_DIR="$PROJECT_ROOT/.venv-linux"
-APP_NAME="xrp_wallet_manager"
+ARCH_LABEL="${LINUX_BUILD_ARCH_LABEL:-$(uname -m)}"
+DIST_DIR="$PROJECT_ROOT/dist-linux/$ARCH_LABEL"
+BUILD_ROOT="$PROJECT_ROOT/build-linux/$ARCH_LABEL"
+VENV_DIR="$PROJECT_ROOT/.venv-linux-$ARCH_LABEL"
 ENTRY_POINT="run.py"
 
 if [[ "$(uname -s)" != "Linux" ]]; then
@@ -13,6 +13,9 @@ if [[ "$(uname -s)" != "Linux" ]]; then
   exit 1
 fi
 
+echo "==> Building XRP Wallet Manager for ${ARCH_LABEL}"
+
+rm -rf "$BUILD_ROOT" "$VENV_DIR"
 mkdir -p "$BUILD_ROOT"
 
 python3 -m venv "$VENV_DIR"
@@ -32,6 +35,7 @@ pyinstaller \
   "$PROJECT_ROOT/$ENTRY_POINT"
 
 mkdir -p "$DIST_DIR"
+rm -rf "$DIST_DIR/XRP-Wallet-Manager"
 cp -r "$BUILD_ROOT/dist/XRP-Wallet-Manager" "$DIST_DIR/"
 
 cat <<'LAUNCHER' > "$DIST_DIR/run.sh"
