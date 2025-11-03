@@ -289,7 +289,11 @@ class XRPWalletManager:
             if response.is_successful():
                 transactions = []
                 for tx in response.result.get('transactions', []):
-                    tx_data = tx.get('tx')
+                    tx_data = (
+                        tx.get('tx')
+                        or tx.get('tx_json')
+                        or tx.get('transaction')
+                    )
                     if not tx_data:
                         continue
                     account_value = self._extract_value(tx_data, ['Account', 'account', 'from', 'source'])
@@ -303,16 +307,16 @@ class XRPWalletManager:
                             dest_tag_val = int(dest_tag_val)
                         except Exception:
                             pass
-                transactions.append({
-                    'hash': tx_data.get('hash', ''),
-                    'type': self._extract_value(tx_data, ['TransactionType', 'type']),
-                    'account': account_value,
-                    'destination': destination_value,
-                    'destination_tag': dest_tag_val,
-                    'amount': self._format_amount(amount_value),
-                    'fee': self._format_fee(tx_data.get('Fee', '0')),
+                    transactions.append({
+                        'hash': tx.get('hash') or tx_data.get('hash', ''),
+                        'type': self._extract_value(tx_data, ['TransactionType', 'type']),
+                        'account': account_value,
+                        'destination': destination_value,
+                        'destination_tag': dest_tag_val,
+                        'amount': self._format_amount(amount_value),
+                        'fee': self._format_fee(tx_data.get('Fee', '0')),
                         'sequence': int(seq_value) if str(seq_value).isdigit() else 0,
-                        'date': self._parse_date(tx.get('date')),
+                        'date': self._parse_date(tx.get('date') or tx_data.get('date')),
                         'validated': tx.get('validated', False),
                         'raw': tx,
                     })
@@ -765,7 +769,9 @@ class XRPWalletManager:
         return value_str
 
     @staticmethod
-    def _extract_value(data: Dict, keys: List[str]) -> Optional[str]:
+    def _extract_value(data: Optional[Dict], keys: List[str]) -> Optional[str]:
+        if not isinstance(data, dict):
+            return None
         for key in keys:
             if key in data and data[key] not in (None, ''):
                 return data[key]
