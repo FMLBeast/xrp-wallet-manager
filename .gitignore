@@ -52,7 +52,8 @@ Thumbs.db
 # Wallet Manager specific
 # User wallet configurations (private keys not stored here anyway, but keep it private)
 .xrp_wallet_manager/
-data/
+data/*
+!data/.gitkeep
 
 # Temporary files
 *.tmp
