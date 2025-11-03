@@ -52,10 +52,12 @@ XRP Wallet Manager is a cross-platform GUI built with Python and tkinter. It kee
    pip install -r requirements.txt
    ```
 
-4. **Configure your wallet:**
-   - Copy `.env.example` to `.env`
-   - Add your seed or private key to the `WALLET_SECRET` field in `.env`
-   - Set `NETWORK` to either `testnet` or `mainnet`
+4. **Unlock the app:**
+   - Launch the GUI (`python run.py`)
+   - Choose a master password when prompted (minimum 8 characters)
+   - Use **Wallets → Add Wallet** to import an existing seed/private key or create a new test wallet
+
+> ℹ️ Environment variables are no longer required for normal use. They remain available for CLI automation or legacy integrations—see [Environment variables (optional)](#environment-variables-optional) below.
 
 ## Usage
 
@@ -92,6 +94,10 @@ installers/linux/run-build.sh
 LINUX_BUILDER_PLATFORM=linux/arm64 installers/linux/run-build.sh
 ```
 
+### Continuous integration builds
+
+Every push and pull request triggers the GitHub Actions workflow [`CI`](https://github.com/FMLBeast/xrp-wallet-manager/actions/workflows/ci.yml), which produces Linux bundles for both `linux/amd64` and `linux/arm64`. You can download the artifacts directly from the workflow run summary, or promote them into a release without rebuilding locally.
+
 **Windows**
 - Install Python 3.10+, the Visual Studio 2022 Build Tools (for C runtime), and `pip install pyinstaller -r requirements.txt`.
 - From an activated `venv\Scripts\activate`, run `pyinstaller --clean --noconfirm --windowed --name "XRP Wallet Manager" run.py`.
@@ -101,11 +107,23 @@ On first launch you will be prompted to create a master password. This password 
 
 ## Configuration
 
-Edit the `.env` file with your settings:
+### Encrypted wallets (recommended)
+
+Wallet secrets are stored in `data/wallets.enc`, encrypted with the master password you choose on first launch. To add or update wallets, use the GUI:
+
+1. Unlock with your master password.
+2. Select **Wallets → Add Wallet**.
+3. Provide the seed/private key and network.
+
+You can manage multiple wallets, keep them synced across networks, and export secrets (after re-authenticating) via **Wallets → 🔐 Export Secrets**.
+
+### Environment variables (optional)
+
+Environment variables remain for advanced/automated scenarios (for example running `run.py` headless on a server). Be aware that storing secrets in plain-text files is risky—only use this approach in controlled environments.
 
 ```env
 # Your XRP wallet secret (family seed starting with 's' or hex private key)
-WALLET_SECRET=your_seed_or_private_key_here
+WALLET_SECRET=
 # Legacy fallback name for backwards compatibility
 PRIVATE_KEY=
 
@@ -120,14 +138,13 @@ TESTNET_URL=https://s.altnet.rippletest.net:51234
 ### Getting Started
 
 1. **For Testing (Recommended for first-time users):**
-   - Set `NETWORK=testnet` in your `.env` file
-   - Use the "Generate Test Wallet" button to create a test wallet
-   - Copy the generated private key to your `.env` file
-   - Restart the application
+   - Keep the default `testnet` network when adding your first wallet.
+   - Use the **Generate Test Wallet** button in the Wallet tab to create a faucet-funded wallet.
+   - Record the seed/private key in a secure location (outside the app) for backup purposes.
 
 2. **For Production:**
-   - Set `NETWORK=mainnet` in your `.env` file
-   - Add your existing private key to the `.env` file
+   - Add your existing mainnet wallet via **Wallets → Add Wallet**.
+   - Confirm the network selection is `mainnet` and verify the derived address before sending funds.
 
 ## Application Tabs
 
@@ -155,7 +172,8 @@ TESTNET_URL=https://s.altnet.rippletest.net:51234
 
 ### 5. Settings Tab
 - View current network settings
-- Manage private keys (manual .env editing required)
+- Configure XRP ledger endpoints
+- Trigger encrypted wallet exports and advanced maintenance tools
 
 ## Security Features
 
