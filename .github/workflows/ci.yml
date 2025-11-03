@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    name: Static checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Compile sources
+        run: |
+          source venv/bin/activate
+          python -m py_compile gui.py xrp_wallet.py run.py
+
+  linux-build:
+    name: Linux packaging smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Build Linux bundle via Docker
+        run: |
+          installers/linux/run-build.sh
+      - name: Clean build artifacts
+        run: |
+          rm -rf dist-linux build-linux .venv-linux

@@ -1,4 +1,5 @@
 # XRP Wallet Manager
+[![CI](https://github.com/FMLBeast/xrp-wallet-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/FMLBeast/xrp-wallet-manager/actions/workflows/ci.yml)
 > Secure desktop application for managing XRP Ledger wallets, secrets, and multisig signers.
 
 XRP Wallet Manager is a cross-platform GUI built with Python and tkinter. It keeps wallet secrets encrypted on disk, wraps common XRP Ledger flows in a friendly interface, and ships with tooling to produce signed installers for macOS, Linux, and Windows.
