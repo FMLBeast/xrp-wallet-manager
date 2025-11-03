@@ -1,11 +1,14 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+from PyInstaller.utils.hooks import collect_data_files
+
+binarycodec_data = collect_data_files("xrpl.core.binarycodec")
 
 a = Analysis(
     ['run.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=binarycodec_data,
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

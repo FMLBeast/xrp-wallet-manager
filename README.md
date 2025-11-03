@@ -1,8 +1,28 @@
-# XRP Wallet Manager
-[![CI](https://github.com/FMLBeast/xrp-wallet-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/FMLBeast/xrp-wallet-manager/actions/workflows/ci.yml)
-> Secure desktop application for managing XRP Ledger wallets, secrets, and multisig signers.
+# XRP Wallet Manager - Modern Desktop App
 
-XRP Wallet Manager is a cross-platform GUI built with Python and tkinter. It keeps wallet secrets encrypted on disk, wraps common XRP Ledger flows in a friendly interface, and ships with tooling to produce signed installers for macOS, Linux, and Windows.
+**A beautiful, modern XRP wallet built with Electron and React.**
+
+![Version](https://img.shields.io/badge/version-2.1.0-blue)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
+![License](https://img.shields.io/badge/license-MIT-green)
+
+## 🚀 Features
+
+- **Modern UI**: Beautiful Material Design interface
+- **Multi-wallet**: Manage multiple XRP wallets
+- **Secure**: Private keys stored locally with encryption
+- **Cross-platform**: Works on Windows, macOS, and Linux
+- **Native feel**: Proper desktop app with native menus
+- **Real-time**: Live balance updates
+- **Transaction history**: View all your transactions
+- **QR codes**: Easy address sharing
+
+## 🏗️ Built With
+
+- **Electron** - Desktop app framework
+- **React** - Modern UI framework
+- **Material-UI** - Beautiful design system
+- **XRPL.js** - XRP Ledger integration
 
 ## Table of Contents
 - [Features](#features)
