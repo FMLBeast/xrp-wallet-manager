@@ -1,6 +1,22 @@
 # XRP Wallet Manager
+> Secure desktop application for managing XRP Ledger wallets, secrets, and multisig signers.
 
-A comprehensive XRP wallet management application built with Python and tkinter, featuring full wallet functionality including multi-signature support.
+XRP Wallet Manager is a cross-platform GUI built with Python and tkinter. It keeps wallet secrets encrypted on disk, wraps common XRP Ledger flows in a friendly interface, and ships with tooling to produce signed installers for macOS, Linux, and Windows.
+
+## Table of Contents
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Packaging installers](#packaging-installers)
+- [Configuration](#configuration)
+- [Application Tabs](#application-tabs)
+- [Security Features](#security-features)
+- [Multi-Signature Wallets](#multi-signature-wallets)
+- [Troubleshooting](#troubleshooting)
+- [Development](#development)
+- [Contributing](#contributing)
+- [License](#license)
+- [Security](#security)
 
 ## Features
 
@@ -50,7 +66,7 @@ python run.py
 # or directly: python gui.py
 ```
 
-#### Packaging installers
+## Packaging installers
 
 **macOS**
 - Prerequisites: Python 3.10+, PyInstaller, Xcode command line tools for code signing.
@@ -73,7 +89,7 @@ python run.py
 
 On first launch you will be prompted to create a master password. This password encrypts your wallets on disk and is required every time the app starts. Keep it safe—if you lose it you will need to re-import your wallets from their original secrets.
 
-### Configuration
+## Configuration
 
 Edit the `.env` file with your settings:
 
@@ -219,10 +235,18 @@ xrp_wallet_manager/
 - `requests`: HTTP client for API calls
 - `tkinter`: GUI framework (included with Python)
 
+## Contributing
+
+We welcome bug reports, feature suggestions, and pull requests. Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on local setup, coding standards, and how to run checks before submitting changes.
+
 ## License
 
-This project is open source. Use at your own risk and ensure you understand XRP Ledger mechanics before using with real funds.
+Distributed under the [MIT License](LICENSE). You are free to use, modify, and distribute the software under its terms.
+
+## Security
+
+See [SECURITY.md](SECURITY.md) for supported versions and how to report vulnerabilities. Please do not post sensitive details in public issues.
 
 ## Disclaimer
 
-This software is provided as-is. Always test with small amounts and on testnet before using with significant funds. The developers are not responsible for any loss of funds.
+This software is provided “as is” without warranty of any kind. Always test on testnet before interacting with mainnet funds, and back up any secrets exported from the application.
