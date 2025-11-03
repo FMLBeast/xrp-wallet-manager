@@ -16,7 +16,6 @@ from typing import Dict, List, Optional, Tuple
 import requests
 from datetime import datetime
 
-from dotenv import load_dotenv
 from ecpy.curves import Curve
 from ecpy.eddsa import EDDSA
 from ecpy.keys import ECPrivateKey
@@ -180,16 +179,13 @@ def create_wallet_from_secret(
 class XRPWalletManager:
     """Main XRP Wallet Management Class"""
 
-    def __init__(self, network: Optional[str] = None, auto_load_env: bool = True):
-        load_dotenv()
+    def __init__(self, network: Optional[str] = None):
         self.network = network or os.getenv("NETWORK", "testnet")
         self.client: Optional[JsonRpcClient] = None
         self.wallet: Optional[Wallet] = None
         self.secret_info: Optional[SecretInfo] = None
         self.multisig_account = os.getenv("MULTISIG_ACCOUNT")
         self.setup_client()
-        if auto_load_env:
-            self.load_wallet()
 
     def setup_client(self):
         """Initialize XRP Ledger client"""
@@ -199,26 +195,6 @@ class XRPWalletManager:
             url = os.getenv("TESTNET_URL", "https://s.altnet.rippletest.net:51234")
 
         self.client = JsonRpcClient(url)
-
-    def load_wallet(self):
-        """Load wallet from environment variables"""
-        secret_candidates = [
-            os.getenv("WALLET_SECRET"),
-            os.getenv("PRIVATE_KEY"),
-            os.getenv("SEED"),
-        ]
-        secret = next((value for value in secret_candidates if value), None)
-        if not secret:
-            return False
-
-        try:
-            wallet, info = create_wallet_from_secret(secret)
-            self.wallet = wallet
-            self.secret_info = info
-            return True
-        except Exception as exc:
-            print(f"Error loading wallet: {exc}")
-            return False
 
     def load_wallet_from_secret(
         self,

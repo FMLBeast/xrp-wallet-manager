@@ -117,24 +117,6 @@ Wallet secrets are stored in `data/wallets.enc`, encrypted with the master passw
 
 You can manage multiple wallets, keep them synced across networks, and export secrets (after re-authenticating) via **Wallets → 🔐 Export Secrets**.
 
-### Environment variables (optional)
-
-Environment variables remain for advanced/automated scenarios (for example running `run.py` headless on a server). Be aware that storing secrets in plain-text files is risky—only use this approach in controlled environments.
-
-```env
-# Your XRP wallet secret (family seed starting with 's' or hex private key)
-WALLET_SECRET=
-# Legacy fallback name for backwards compatibility
-PRIVATE_KEY=
-
-# Network (testnet for development, mainnet for production)
-NETWORK=testnet
-
-# Server URLs (defaults provided)
-MAINNET_URL=https://xrplcluster.com
-TESTNET_URL=https://s.altnet.rippletest.net:51234
-```
-
 ### Getting Started
 
 1. **For Testing (Recommended for first-time users):**
@@ -177,7 +159,7 @@ TESTNET_URL=https://s.altnet.rippletest.net:51234
 
 ## Security Features
 
-- **Private Key Protection**: Keys stored in .env files, never displayed in GUI
+- **Private Key Protection**: Secrets encrypted in `data/wallets.enc`, unlocked via your master password
 - **Address Validation**: Automatic validation of XRP addresses
 - **Transaction Confirmation**: Confirmation dialogs for all transactions
 - **Network Isolation**: Separate testnet and mainnet configurations
@@ -202,7 +184,7 @@ This application supports creating and managing multi-signature wallets:
 ### Security Warnings
 
 - **Never share your private key** with anyone
-- **Keep your .env file secure** and never commit it to version control
+- **Keep your master password secret** and store encrypted exports in safe locations
 - **Protect `data/wallets.enc`** – the GUI stores encrypted secrets here; keep it private and backed up.
 - **Use testnet for development** and testing
 - **Master password is required** – it encrypts `data/wallets.enc`. Losing it means you must restore wallets from the original seed/private key backups.
@@ -224,12 +206,12 @@ This application supports creating and managing multi-signature wallets:
 ### Common Issues
 
 1. **"No wallet loaded" error:**
-   - Check that your private key is correctly set in the `.env` file
-   - Ensure the private key is a valid 64-character hex string
+   - Unlock the application with your master password and ensure at least one wallet is imported.
+   - In the Wallets menu, confirm that a wallet is marked as active.
 
 2. **Connection errors:**
-   - Check your internet connection
-   - Verify the network URLs in your `.env` file
+   - Check your internet connection.
+   - Verify the selected network and server endpoints in the **Settings** tab.
 
 3. **Transaction failures:**
    - Ensure sufficient XRP balance (including reserves)
@@ -251,7 +233,6 @@ xrp_wallet_manager/
 ├── gui.py              # Modern multi-wallet GUI application
 ├── xrp_wallet.py       # Core XRP wallet functionality
 ├── run.py              # Application launcher
-├── .env.example        # Template for environment variables
 ├── requirements.txt    # Python dependencies
 └── README.md          # This file
 ```
@@ -259,7 +240,6 @@ xrp_wallet_manager/
 ### Dependencies
 
 - `xrpl-py`: Official XRP Ledger Python library
-- `python-dotenv`: Environment variable management
 - `requests`: HTTP client for API calls
 - `tkinter`: GUI framework (included with Python)
 

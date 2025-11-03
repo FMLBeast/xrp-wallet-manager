@@ -2,6 +2,12 @@
 
 All notable changes to the XRP Wallet Manager will be documented in this file.
 
+## [Unreleased]
+
+### Removed
+- Legacy `.env`-based wallet loading and the `python-dotenv` dependency—wallet secrets now live exclusively in the encrypted store.
+- The `.env.example` template, which is no longer required.
+
 ## [1.0.0] - 2025-11-02
 
 ### ✨ New Features
@@ -28,7 +34,6 @@ All notable changes to the XRP Wallet Manager will be documented in this file.
 
 ### 📦 Dependencies
 - `xrpl-py` 4.3.0 - Official XRP Ledger Python library
-- `python-dotenv` 1.2.1 - Environment variable management
 - `requests` 2.32.5 - HTTP client library
 
 ### 🚀 Getting Started
@@ -48,7 +53,6 @@ xrp_wallet_manager/
 ├── run.py              # Application launcher
 ├── requirements.txt    # Dependencies
 ├── README.md          # Documentation
-├── .env.example       # Environment template
 └── VERSION            # Version information
 ```
 

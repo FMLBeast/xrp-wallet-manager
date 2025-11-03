@@ -11,7 +11,7 @@ Thanks for your interest in improving XRP Wallet Manager! The guidelines below h
    source venv/bin/activate
    pip install -r requirements.txt
    ```
-3. Copy `.env.example` to `.env` and provide test credentials (a funded testnet wallet works best).
+3. Launch `python run.py`, choose a temporary master password, and add a testnet wallet through the GUI so you can exercise key flows.
 
 ## Development workflow
 
@@ -19,7 +19,7 @@ Thanks for your interest in improving XRP Wallet Manager! The guidelines below h
 - **Type hints**: New code should include type annotations where practical.
 - **Testing**: At a minimum run `python -m py_compile gui.py xrp_wallet.py run.py` before sending a PR. Where feasible, add automated tests around new logic.
 - **UI tweaks**: Include screenshots or screen recordings in the PR description for any significant visual changes.
-- **Secrets**: Never commit real seeds or `.env` files. The repo ignores `data/` and `.xrp_wallet_manager/` to keep encrypted wallets private.
+- **Secrets**: Never commit real seeds or decrypted exports. The repo ignores `data/` and `.xrp_wallet_manager/` to keep encrypted wallets private.
 
 ## Packaging checks
 

@@ -7,7 +7,6 @@ import base64
 import hashlib
 import hmac
 import json
-import os
 import secrets
 import threading
 import tkinter as tk
@@ -269,7 +268,7 @@ class MultiWalletManager:
             self.wallets[name] = wallet_data
             self.secret_cache[name] = secret_info
 
-            manager = XRPWalletManager(network=network, auto_load_env=False)
+            manager = XRPWalletManager(network=network)
             manager.use_wallet(wallet, secret_info)
             self.wallet_managers[name] = manager
 
@@ -280,8 +279,6 @@ class MultiWalletManager:
         if self.active_wallet in self.wallets:
             active = self.wallets[self.active_wallet]
             active.is_active = True
-            os.environ["WALLET_SECRET"] = active.secret
-            os.environ["NETWORK"] = active.network
         else:
             self.active_wallet = None
 
@@ -306,7 +303,7 @@ class MultiWalletManager:
             if wallet is None or info is None:
                 raise ValueError("Unable to construct wallet from provided secret")
 
-            manager = XRPWalletManager(network=network, auto_load_env=False)
+            manager = XRPWalletManager(network=network)
             manager.use_wallet(wallet, info)
             manager.network = network
             manager.setup_client()
@@ -367,9 +364,6 @@ class MultiWalletManager:
         if not manager:
             return False
 
-        os.environ["WALLET_SECRET"] = wallet_data.secret
-        os.environ["NETWORK"] = wallet_data.network
-
         self.save_wallets()
         return True
 
@@ -399,7 +393,7 @@ class MultiWalletManager:
 
         manager = self.wallet_managers.get(name)
         if manager is None:
-            manager = XRPWalletManager(network=wallet_data.network, auto_load_env=False)
+            manager = XRPWalletManager(network=wallet_data.network)
             self.wallet_managers[name] = manager
 
         manager.network = wallet_data.network
@@ -936,7 +930,7 @@ class ModernXRPWalletGUI:
         def generate_thread():
             try:
                 # Create temporary manager for testnet
-                temp_manager = XRPWalletManager(network="testnet", auto_load_env=False)
+                temp_manager = XRPWalletManager(network="testnet")
                 wallet, secret_info = temp_manager.generate_test_wallet()
                 address = wallet.address
 
@@ -1805,7 +1799,7 @@ class ModernXRPWalletGUI:
         def update_thread():
             try:
                 # Create a temporary manager to get network info
-                temp_manager = XRPWalletManager(auto_load_env=False)
+                temp_manager = XRPWalletManager()
                 network_info = temp_manager.get_network_info()
 
                 if "error" not in network_info:
