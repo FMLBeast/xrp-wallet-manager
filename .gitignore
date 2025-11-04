@@ -59,3 +59,7 @@ data/*
 # Temporary files
 *.tmp
 *.temp
+dist-electron/
+playwright-report/
+test-results/
+.env.e2e
