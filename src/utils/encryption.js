@@ -34,11 +34,6 @@ function deriveKey(password, salt) {
  * Matches the Python version's encryption scheme
  */
 export function encryptData(password, plaintext) {
-  // Debug: Log password characteristics (not the actual password!)
-  console.log('[Encrypt] Password length:', password.length);
-  console.log('[Encrypt] Has leading space:', password[0] === ' ');
-  console.log('[Encrypt] Has trailing space:', password[password.length - 1] === ' ');
-
   // Convert plaintext to bytes
   const plaintextBytes = CryptoJS.enc.Utf8.parse(plaintext);
 
@@ -69,17 +64,13 @@ export function encryptData(password, plaintext) {
 
   const mac = CryptoJS.HmacSHA256(macData, key);
 
-  const envelope = {
+  // Return envelope
+  return {
     salt: salt.toString(CryptoJS.enc.Hex),
     nonce: nonce.toString(CryptoJS.enc.Hex),
     ciphertext: ciphertext.toString(CryptoJS.enc.Hex),
     mac: mac.toString(CryptoJS.enc.Hex)
   };
-
-  console.log('[Encrypt] Successfully encrypted data, MAC:', envelope.mac.substring(0, 16) + '...');
-
-  // Return envelope
-  return envelope;
 }
 
 /**
@@ -88,11 +79,6 @@ export function encryptData(password, plaintext) {
  */
 export function decryptData(password, envelope) {
   try {
-    // Debug: Log password characteristics (not the actual password!)
-    console.log('[Decrypt] Password length:', password.length);
-    console.log('[Decrypt] Has leading space:', password[0] === ' ');
-    console.log('[Decrypt] Has trailing space:', password[password.length - 1] === ' ');
-
     // Parse envelope components
     const salt = CryptoJS.enc.Hex.parse(envelope.salt);
     const nonce = CryptoJS.enc.Hex.parse(envelope.nonce);
@@ -111,16 +97,10 @@ export function decryptData(password, envelope) {
     const calculatedMac = CryptoJS.HmacSHA256(macData, key);
     const calculatedMacHex = calculatedMac.toString(CryptoJS.enc.Hex);
 
-    console.log('[Decrypt] MAC verification - Provided:', providedMac.substring(0, 16) + '...');
-    console.log('[Decrypt] MAC verification - Calculated:', calculatedMacHex.substring(0, 16) + '...');
-
     // Use explicit hex comparison for MAC verification
     if (calculatedMacHex !== providedMac) {
-      console.error('[Decrypt] MAC verification failed - password mismatch');
       throw new Error('Invalid password or corrupted data');
     }
-
-    console.log('[Decrypt] MAC verification passed');
 
     // Create HMAC key for decryption
     const hmacKey = CryptoJS.HmacSHA256(nonce, key);
@@ -143,10 +123,8 @@ export function decryptData(password, envelope) {
       throw new Error('Decryption failed - invalid password');
     }
 
-    console.log('[Decrypt] Successfully decrypted data');
     return plaintext;
   } catch (error) {
-    console.error('[Decrypt] Error:', error.message);
     if (error.message.includes('Invalid password')) {
       throw error;
     }
