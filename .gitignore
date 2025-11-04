@@ -63,3 +63,16 @@ data/*
 # Temporary files
 *.tmp
 *.temp
+
+# Build and test artifacts
+dist-electron/
+playwright-report/
+test-results/
+coverage/
+.nyc_output/
+*.dmg
+*.zip
+*.blockmap
+
+# Test environment
+.env.e2e

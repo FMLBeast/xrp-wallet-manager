@@ -78,9 +78,17 @@ export async function loadWalletStorage(masterPassword) {
       address_book: walletData.address_book || []
     };
   } catch (error) {
+    console.error('loadWalletStorage error details:', error);
+
     if (error.message.includes('Invalid password') || error.message.includes('incompatible wallet format')) {
       throw new Error('Invalid master password');
     }
+
+    // Provide more specific error information
+    if (error.message.includes('ENOENT') || error.message.includes('File not found')) {
+      throw new Error('Wallet storage file not found - this might be the first wallet import');
+    }
+
     throw new Error(`Failed to load wallet storage: ${error.message}`);
   }
 }
@@ -114,8 +122,22 @@ export async function saveWalletStorage(masterPassword, walletData) {
  * Add or update a wallet
  */
 export async function addWallet(masterPassword, walletInfo) {
-  const storage = await loadWalletStorage(masterPassword);
+  if (!masterPassword) {
+    throw new Error('Master password is required for adding wallets');
+  }
 
+  console.log('addWallet: Attempting to load wallet storage...');
+  try {
+    const storage = await loadWalletStorage(masterPassword);
+    console.log('addWallet: Successfully loaded wallet storage');
+    return await _addWalletToStorage(masterPassword, walletInfo, storage);
+  } catch (error) {
+    console.error('addWallet: Failed to load wallet storage:', error.message);
+    throw error;
+  }
+}
+
+async function _addWalletToStorage(masterPassword, walletInfo, storage) {
   // Add wallet to storage
   storage.wallets[walletInfo.name] = {
     name: walletInfo.name,
@@ -346,6 +368,22 @@ export async function updateWalletNetwork(masterPassword, walletName, network) {
 
   await saveWalletStorage(masterPassword, storage);
   return storage.wallets[walletName];
+}
+
+/**
+ * Reset wallet storage (delete all data)
+ */
+export async function resetWalletStorage() {
+  if (!window.electronAPI) {
+    throw new Error('Electron API not available');
+  }
+
+  try {
+    const result = await window.electronAPI.invoke('wallet-storage-reset');
+    return result;
+  } catch (error) {
+    throw new Error(`Failed to reset wallet storage: ${error.message}`);
+  }
 }
 
 /**
