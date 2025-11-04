@@ -15,7 +15,10 @@
     "electron-pack": "npm run build && electron-builder",
     "dist": "npm run build && electron-builder --publish=never",
     "dist-all": "npm run build && electron-builder -mwl",
-    "postinstall": "electron-builder install-app-deps"
+    "postinstall": "electron-builder install-app-deps",
+    "e2e": "env-cmd -f .env.e2e playwright test",
+    "e2e:headed": "env-cmd -f .env.e2e PLAYWRIGHT_HEADFUL=1 playwright test --headed",
+    "e2e:ui": "env-cmd -f .env.e2e playwright test --ui"
   },
   "build": {
     "appId": "com.xrpwalletmanager.app",
@@ -35,11 +38,17 @@
       "target": [
         {
           "target": "dmg",
-          "arch": ["x64", "arm64"]
+          "arch": [
+            "x64",
+            "arm64"
+          ]
         },
         {
           "target": "zip",
-          "arch": ["x64", "arm64"]
+          "arch": [
+            "x64",
+            "arm64"
+          ]
         }
       ]
     },
@@ -48,11 +57,17 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64", "ia32"]
+          "arch": [
+            "x64",
+            "ia32"
+          ]
         },
         {
           "target": "portable",
-          "arch": ["x64", "ia32"]
+          "arch": [
+            "x64",
+            "ia32"
+          ]
         }
       ]
     },
@@ -61,15 +76,21 @@
       "target": [
         {
           "target": "AppImage",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "deb",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "rpm",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ]
     },
@@ -87,6 +108,7 @@
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
     "crypto-js": "^4.2.0",
+    "electron-is-dev": "^2.0.0",
     "qrcode": "^1.5.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -103,7 +125,6 @@
     "crypto-browserify": "^3.12.0",
     "electron": "^27.1.3",
     "electron-builder": "^24.8.1",
-    "electron-is-dev": "^2.0.0",
     "https-browserify": "^1.0.0",
     "os-browserify": "^0.3.0",
     "path-browserify": "^1.0.1",
@@ -111,7 +132,9 @@
     "stream-browserify": "^3.0.0",
     "stream-http": "^3.2.0",
     "url": "^0.11.3",
-    "wait-on": "^7.2.0"
+    "wait-on": "^7.2.0",
+    "@playwright/test": "^1.48.2",
+    "env-cmd": "^10.1.0"
   },
   "eslintConfig": {
     "extends": [

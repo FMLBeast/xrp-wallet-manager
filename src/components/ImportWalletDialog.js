@@ -41,6 +41,7 @@ export default function ImportWalletDialog({
   const [walletInfo, setWalletInfo] = useState(null);
   const [error, setError] = useState('');
   const [validationError, setValidationError] = useState('');
+  const [generatingTestWallet, setGeneratingTestWallet] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -76,6 +77,7 @@ export default function ImportWalletDialog({
 
   const handleGenerateTestWallet = async () => {
     setError('');
+    setGeneratingTestWallet(true);
     try {
       const testWallet = await generateTestWallet();
       setSecret(testWallet.secret);
@@ -84,6 +86,8 @@ export default function ImportWalletDialog({
       setSelectedNetwork('testnet');
     } catch (error) {
       setError('Failed to generate test wallet: ' + error.message);
+    } finally {
+      setGeneratingTestWallet(false);
     }
   };
 
@@ -166,10 +170,10 @@ export default function ImportWalletDialog({
               <Button
                 variant="outlined"
                 onClick={handleGenerateTestWallet}
-                startIcon={<Add />}
-                disabled={loading}
+                startIcon={generatingTestWallet ? <CircularProgress size={16} /> : <Add />}
+                disabled={loading || generatingTestWallet}
               >
-                Generate Test Wallet
+                {generatingTestWallet ? 'Generating...' : 'Generate Test Wallet'}
               </Button>
             </Box>
 

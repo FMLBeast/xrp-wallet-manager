@@ -44,7 +44,7 @@ import {
 import MasterPasswordDialog from './components/MasterPasswordDialog';
 import ImportWalletDialog from './components/ImportWalletDialog';
 import WalletTabs from './components/WalletTabs';
-import { walletsFileExists, loadWalletStorage, addWallet, setActiveWallet } from './utils/walletStorage';
+import { walletsFileExists, loadWalletStorage, addWallet, setActiveWallet, resetWalletStorage } from './utils/walletStorage';
 import { generateTestWallet } from './utils/xrplWallet';
 
 const theme = createTheme({
@@ -88,6 +88,15 @@ function App() {
   const [selectedTab, setSelectedTab] = useState(0);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const [loading, setLoading] = useState(false);
+
+  // Loading states for specific operations
+  const [loadingStates, setLoadingStates] = useState({
+    balanceRefresh: {},          // { walletName: boolean }
+    transactionHistory: {},      // { walletName: boolean }
+    sendingTransaction: false,
+    networkConnection: {},       // { walletName: boolean }
+    accountInfo: {}              // { walletName: boolean }
+  });
 
   // Network and balance state
   const [balances, setBalances] = useState({});
@@ -227,6 +236,30 @@ function App() {
     }
   };
 
+  const handlePasswordReset = async () => {
+    setPasswordDialogLoading(true);
+    setPasswordDialogError('');
+
+    try {
+      await resetWalletStorage();
+
+      // Reset app state
+      setWallets({});
+      setActiveWalletName(null);
+      setAddressBook([]);
+
+      // Switch to create mode
+      setPasswordDialogMode('create');
+      setPasswordDialogError('');
+
+      showSnackbar('All wallet data has been reset. Create a new master password.', 'info');
+    } catch (error) {
+      setPasswordDialogError('Failed to reset wallet data: ' + error.message);
+    } finally {
+      setPasswordDialogLoading(false);
+    }
+  };
+
   const handleCreateNewWallet = () => {
     // For now, show import dialog - we'll add generate option later
     setShowImportDialog(true);
@@ -236,6 +269,11 @@ function App() {
     setImportDialogLoading(true);
 
     try {
+      // Check if we have a valid master password
+      if (!masterPassword) {
+        throw new Error('Master password not available. Please unlock your wallet storage first.');
+      }
+
       // Check if wallet name already exists
       if (wallets[walletData.name]) {
         throw new Error(`Wallet '${walletData.name}' already exists`);
@@ -275,11 +313,17 @@ function App() {
   };
 
   const refreshWalletBalance = async (walletName, walletData) => {
+    setOperationLoading('balanceRefresh', walletName, true);
+    setOperationLoading('networkConnection', walletName, true);
+
     try {
       const { createClient, getAccountInfo } = require('./utils/xrplWallet');
       const client = createClient(walletData.network);
 
       await client.connect();
+      setOperationLoading('networkConnection', walletName, false);
+      setOperationLoading('accountInfo', walletName, true);
+
       const accountInfo = await getAccountInfo(client, walletData.address);
       await client.disconnect();
 
@@ -295,6 +339,8 @@ function App() {
         // Update stored balance
         const { updateWalletBalance } = require('./utils/walletStorage');
         await updateWalletBalance(masterPassword, walletName, balance);
+
+        showSnackbar(`Balance updated for ${walletName}`, 'success');
       }
     } catch (error) {
       console.error(`Failed to refresh balance for ${walletName}:`, error);
@@ -302,6 +348,11 @@ function App() {
         ...prev,
         [walletName]: 'Error'
       }));
+      showSnackbar(`Failed to refresh balance for ${walletName}: ${error.message}`, 'error');
+    } finally {
+      setOperationLoading('balanceRefresh', walletName, false);
+      setOperationLoading('networkConnection', walletName, false);
+      setOperationLoading('accountInfo', walletName, false);
     }
   };
 
@@ -318,6 +369,24 @@ function App() {
 
   const handleSnackbarClose = () => {
     setSnackbar({ ...snackbar, open: false });
+  };
+
+  // Helper functions for loading states
+  const setOperationLoading = (operation, key, isLoading) => {
+    setLoadingStates(prev => ({
+      ...prev,
+      [operation]: typeof key === 'string' ? {
+        ...prev[operation],
+        [key]: isLoading
+      } : isLoading
+    }));
+  };
+
+  const isOperationLoading = (operation, key = null) => {
+    if (key === null) {
+      return loadingStates[operation];
+    }
+    return loadingStates[operation]?.[key] || false;
   };
 
   const activeWallet = activeWalletName ? wallets[activeWalletName] : null;
@@ -365,6 +434,7 @@ function App() {
           open={showPasswordDialog}
           onSubmit={handlePasswordSubmit}
           onCancel={handlePasswordCancel}
+          onReset={handlePasswordReset}
           mode={passwordDialogMode}
           loading={passwordDialogLoading}
           error={passwordDialogError}
@@ -480,8 +550,10 @@ function App() {
                     <Refresh />
                   </IconButton>
                   <Chip
-                    icon={<NetworkCheck />}
-                    label={activeWallet.network}
+                    icon={isOperationLoading('networkConnection', activeWallet.name) ?
+                      <CircularProgress size={16} /> : <NetworkCheck />}
+                    label={isOperationLoading('networkConnection', activeWallet.name) ?
+                      'Connecting...' : activeWallet.network}
                     color={activeWallet.network === 'mainnet' ? 'primary' : 'secondary'}
                     variant="outlined"
                   />
@@ -545,6 +617,8 @@ function App() {
                   masterPassword={masterPassword}
                   onWalletUpdate={handleWalletUpdate}
                   onAddressBookChange={handleAddressBookChange}
+                  loadingStates={loadingStates}
+                  isOperationLoading={isOperationLoading}
                 />
               </Box>
             )}

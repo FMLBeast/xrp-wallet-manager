@@ -28,6 +28,10 @@ env/
 ENV/
 .venv-linux*/
 node_modules/
+dist-electron/
+playwright-report/
+test-results/
+.env.e2e
 
 # Environment Variables (IMPORTANT - keeps private keys secure)
 .env
@@ -59,3 +63,16 @@ data/*
 # Temporary files
 *.tmp
 *.temp
+
+# Build and test artifacts
+dist-electron/
+playwright-report/
+test-results/
+coverage/
+.nyc_output/
+*.dmg
+*.zip
+*.blockmap
+
+# Test environment
+.env.e2e

@@ -41,9 +41,9 @@ function createWindow() {
     mainWindow.show();
 
     // Open DevTools in development
-    if (isDev) {
-      mainWindow.webContents.openDevTools();
-    }
+    // if (isDev) {
+    //   mainWindow.webContents.openDevTools();
+    // }
   });
 
   // Emitted when the window is closed
@@ -295,6 +295,39 @@ ipcMain.handle('wallet-storage-restore', async (event, backupPath) => {
     return { success: true };
   } catch (error) {
     console.error('Failed to restore wallet storage:', error);
+    throw error;
+  }
+});
+
+// Reset wallet storage (delete the file)
+ipcMain.handle('wallet-storage-reset', async () => {
+  try {
+    // Create backup before deletion
+    try {
+      await fs.access(WALLETS_FILE);
+      const timestamp = new Date().toISOString().replace(/:/g, '-');
+      const backupFileName = `wallets.enc.reset-backup.${timestamp}`;
+      const backupFilePath = path.join(path.dirname(WALLETS_FILE), backupFileName);
+      await fs.copyFile(WALLETS_FILE, backupFilePath);
+      console.log('Created backup before reset:', backupFilePath);
+    } catch (error) {
+      // File doesn't exist, no need to backup
+    }
+
+    // Delete the wallet file
+    try {
+      await fs.unlink(WALLETS_FILE);
+      console.log('Wallet storage file deleted successfully');
+    } catch (error) {
+      if (error.code !== 'ENOENT') {
+        throw error;
+      }
+      // File already doesn't exist
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to reset wallet storage:', error);
     throw error;
   }
 });

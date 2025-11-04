@@ -3,6 +3,11 @@ const webpack = require('webpack');
 module.exports = {
   webpack: {
     configure: (webpackConfig) => {
+      console.log('🔧 CRACO: Configuring webpack polyfills...');
+
+      // Initialize fallback if it doesn't exist
+      webpackConfig.resolve.fallback = webpackConfig.resolve.fallback || {};
+
       // Add polyfills for Node.js modules used by XRPL
       webpackConfig.resolve.fallback = {
         ...webpackConfig.resolve.fallback,
@@ -30,6 +35,7 @@ module.exports = {
         }),
       ];
 
+      console.log('✅ CRACO: Webpack configuration complete');
       return webpackConfig;
     },
   },
