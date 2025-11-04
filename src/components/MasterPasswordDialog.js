@@ -105,6 +105,7 @@ export default function MasterPasswordDialog({
   open,
   onSubmit,
   onCancel,
+  onReset,
   mode = 'unlock',
   loading = false,
   error = ''
@@ -129,27 +130,32 @@ export default function MasterPasswordDialog({
   const handleSubmit = () => {
     setValidationError('');
 
-    if (!password) {
+    // CRITICAL: Trim whitespace to prevent password mismatch issues
+    const normalizedPassword = password.trim();
+
+    if (!normalizedPassword) {
       setValidationError('Password is required');
       return;
     }
 
     if (isCreateMode) {
       // Validate password strength for creation
-      const validation = validatePassword(password);
+      const validation = validatePassword(normalizedPassword);
       if (!validation.isValid) {
         setValidationError(validation.errors[0]);
         return;
       }
 
-      // Check password confirmation
-      if (password !== confirmPassword) {
+      // Check password confirmation (also trim confirm password)
+      const normalizedConfirm = confirmPassword.trim();
+      if (normalizedPassword !== normalizedConfirm) {
         setValidationError('Passwords do not match');
         return;
       }
     }
 
-    onSubmit(password);
+    // Always pass the trimmed password
+    onSubmit(normalizedPassword);
   };
 
   const handleKeyPress = (event) => {
@@ -198,6 +204,8 @@ export default function MasterPasswordDialog({
             onKeyPress={handleKeyPress}
             margin="normal"
             disabled={loading}
+            autoComplete="off"
+            spellCheck="false"
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
@@ -210,6 +218,8 @@ export default function MasterPasswordDialog({
                 </InputAdornment>
               ),
             }}
+            helperText={password !== password.trim() && password ? 'Warning: Password has leading or trailing spaces' : ''}
+            error={password !== password.trim() && password}
           />
 
           {isCreateMode && password && (
@@ -241,6 +251,8 @@ export default function MasterPasswordDialog({
               onKeyPress={handleKeyPress}
               margin="normal"
               disabled={loading}
+              autoComplete="off"
+              spellCheck="false"
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
@@ -253,12 +265,21 @@ export default function MasterPasswordDialog({
                   </InputAdornment>
                 ),
               }}
+              helperText={confirmPassword !== confirmPassword.trim() && confirmPassword ? 'Warning: Password has leading or trailing spaces' : ''}
+              error={confirmPassword !== confirmPassword.trim() && confirmPassword}
             />
           )}
 
           {(error || validationError) && (
             <Alert severity="error" sx={{ mt: 2 }}>
               {validationError || error}
+              {!isCreateMode && error.includes('Invalid') && (
+                <Box mt={1}>
+                  <Typography variant="caption" color="text.secondary">
+                    Can't remember your password? You can reset all wallet data to start fresh.
+                  </Typography>
+                </Box>
+              )}
             </Alert>
           )}
 
@@ -274,19 +295,35 @@ export default function MasterPasswordDialog({
       </DialogContent>
 
       <DialogActions sx={{ p: 3, pt: 1 }}>
-        {isCreateMode && (
-          <Button onClick={onCancel} disabled={loading}>
-            Cancel
-          </Button>
-        )}
-        <Button
-          onClick={handleSubmit}
-          variant="contained"
-          disabled={loading || !password || (isCreateMode && !confirmPassword)}
-          startIcon={loading && <CircularProgress size={16} />}
-        >
-          {loading ? 'Processing...' : (isCreateMode ? 'Create Password' : 'Unlock')}
-        </Button>
+        <Box display="flex" justifyContent="space-between" width="100%">
+          <Box>
+            {!isCreateMode && error.includes('Invalid') && onReset && (
+              <Button
+                onClick={onReset}
+                disabled={loading}
+                color="error"
+                size="small"
+              >
+                Reset All Data
+              </Button>
+            )}
+          </Box>
+          <Box display="flex" gap={1}>
+            {isCreateMode && (
+              <Button onClick={onCancel} disabled={loading}>
+                Cancel
+              </Button>
+            )}
+            <Button
+              onClick={handleSubmit}
+              variant="contained"
+              disabled={loading || !password || (isCreateMode && !confirmPassword)}
+              startIcon={loading && <CircularProgress size={16} />}
+            >
+              {loading ? 'Processing...' : (isCreateMode ? 'Create Password' : 'Unlock')}
+            </Button>
+          </Box>
+        </Box>
       </DialogActions>
     </Dialog>
   );

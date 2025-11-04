@@ -10,7 +10,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
       'wallet-storage-load',
       'wallet-storage-save',
       'wallet-storage-backup',
-      'wallet-storage-restore'
+      'wallet-storage-restore',
+      'wallet-storage-reset'
     ];
 
     if (validChannels.includes(channel)) {
