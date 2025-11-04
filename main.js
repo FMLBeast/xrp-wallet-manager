@@ -41,9 +41,9 @@ function createWindow() {
     mainWindow.show();
 
     // Open DevTools in development
-    // if (isDev) {
-    //   mainWindow.webContents.openDevTools();
-    // }
+    if (isDev) {
+      mainWindow.webContents.openDevTools();
+    }
   });
 
   // Emitted when the window is closed
