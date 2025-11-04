@@ -27,6 +27,7 @@ venv/
 env/
 ENV/
 .venv-linux*/
+node_modules/
 
 # Environment Variables (IMPORTANT - keeps private keys secure)
 .env

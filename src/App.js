@@ -1,0 +1,590 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  ThemeProvider,
+  createTheme,
+  CssBaseline,
+  Box,
+  Drawer,
+  AppBar,
+  Toolbar,
+  Typography,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Button,
+  Card,
+  CardContent,
+  IconButton,
+  Chip,
+  Alert,
+  Snackbar,
+  Tabs,
+  Tab,
+  CircularProgress,
+  Backdrop
+} from '@mui/material';
+import {
+  AccountBalanceWallet,
+  Add,
+  Refresh,
+  Send,
+  CallReceived,
+  History,
+  Settings,
+  Security,
+  NetworkCheck,
+  Download,
+  Upload,
+  People
+} from '@mui/icons-material';
+
+// Import our new components and utilities
+import MasterPasswordDialog from './components/MasterPasswordDialog';
+import ImportWalletDialog from './components/ImportWalletDialog';
+import WalletTabs from './components/WalletTabs';
+import { walletsFileExists, loadWalletStorage, addWallet, setActiveWallet } from './utils/walletStorage';
+import { generateTestWallet } from './utils/xrplWallet';
+
+const theme = createTheme({
+  palette: {
+    mode: 'dark',
+    primary: {
+      main: '#2563eb',
+    },
+    secondary: {
+      main: '#10b981',
+    },
+    background: {
+      default: '#0f172a',
+      paper: '#1e293b',
+    },
+  },
+  typography: {
+    fontFamily: '"SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+  },
+});
+
+const drawerWidth = 320;
+
+function App() {
+  // Authentication state
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [masterPassword, setMasterPassword] = useState('');
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [passwordDialogMode, setPasswordDialogMode] = useState('unlock');
+  const [passwordDialogError, setPasswordDialogError] = useState('');
+  const [passwordDialogLoading, setPasswordDialogLoading] = useState(false);
+
+  // Wallet state
+  const [wallets, setWallets] = useState({});
+  const [activeWalletName, setActiveWalletName] = useState(null);
+  const [addressBook, setAddressBook] = useState([]);
+
+  // UI state
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [importDialogLoading, setImportDialogLoading] = useState(false);
+  const [selectedTab, setSelectedTab] = useState(0);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
+  const [loading, setLoading] = useState(false);
+
+  // Network and balance state
+  const [balances, setBalances] = useState({});
+  const [networkStatus, setNetworkStatus] = useState({});
+
+  // Initialize app on mount
+  useEffect(() => {
+    initializeApp();
+    setupElectronMenuHandlers();
+
+    return () => {
+      cleanupElectronMenuHandlers();
+    };
+  }, []);
+
+  const initializeApp = async () => {
+    try {
+      const fileExists = await walletsFileExists();
+
+      if (fileExists) {
+        // Show unlock dialog
+        setPasswordDialogMode('unlock');
+        setShowPasswordDialog(true);
+      } else {
+        // Show create password dialog
+        setPasswordDialogMode('create');
+        setShowPasswordDialog(true);
+      }
+    } catch (error) {
+      showSnackbar('Failed to initialize application: ' + error.message, 'error');
+    }
+  };
+
+  const setupElectronMenuHandlers = () => {
+    if (window.electronAPI) {
+      window.electronAPI.onMenuNewWallet(() => {
+        if (isUnlocked) {
+          handleCreateNewWallet();
+        }
+      });
+
+      window.electronAPI.onMenuImportWallet(() => {
+        if (isUnlocked) {
+          setShowImportDialog(true);
+        }
+      });
+
+      window.electronAPI.onMenuSendTransaction(() => {
+        if (isUnlocked && activeWalletName) {
+          setSelectedTab(1); // Send tab
+        }
+      });
+
+      window.electronAPI.onMenuReceive(() => {
+        if (isUnlocked && activeWalletName) {
+          setSelectedTab(2); // Receive tab
+        }
+      });
+
+      window.electronAPI.onMenuRefreshBalance(() => {
+        if (isUnlocked && activeWalletName) {
+          handleRefreshBalance();
+        }
+      });
+    }
+  };
+
+  const cleanupElectronMenuHandlers = () => {
+    if (window.electronAPI) {
+      window.electronAPI.removeAllListeners('menu-new-wallet');
+      window.electronAPI.removeAllListeners('menu-import-wallet');
+      window.electronAPI.removeAllListeners('menu-send-transaction');
+      window.electronAPI.removeAllListeners('menu-receive');
+      window.electronAPI.removeAllListeners('menu-refresh-balance');
+    }
+  };
+
+  const handlePasswordSubmit = async (password) => {
+    setPasswordDialogLoading(true);
+    setPasswordDialogError('');
+
+    try {
+      if (passwordDialogMode === 'create') {
+        // Create new encrypted storage
+        const emptyStorage = {
+          wallets: {},
+          active_wallet: null,
+          address_book: []
+        };
+
+        // Test that we can save and load
+        const { saveWalletStorage } = require('./utils/walletStorage');
+        await saveWalletStorage(password, emptyStorage);
+
+        setMasterPassword(password);
+        setWallets({});
+        setActiveWalletName(null);
+        setAddressBook([]);
+        setIsUnlocked(true);
+        setShowPasswordDialog(false);
+
+        showSnackbar('Master password created successfully!', 'success');
+      } else {
+        // Unlock existing storage
+        const storage = await loadWalletStorage(password);
+
+        setMasterPassword(password);
+        setWallets(storage.wallets || {});
+        setActiveWalletName(storage.active_wallet);
+        setAddressBook(storage.address_book || []);
+        setIsUnlocked(true);
+        setShowPasswordDialog(false);
+
+        showSnackbar('Wallets unlocked successfully!', 'success');
+
+        // Refresh balances for all wallets
+        Object.keys(storage.wallets || {}).forEach(walletName => {
+          refreshWalletBalance(walletName, storage.wallets[walletName]);
+        });
+      }
+    } catch (error) {
+      setPasswordDialogError(error.message);
+    } finally {
+      setPasswordDialogLoading(false);
+    }
+  };
+
+  const handlePasswordCancel = () => {
+    setShowPasswordDialog(false);
+    setPasswordDialogError('');
+
+    // If not unlocked, show dialog again (can't use app without password)
+    if (!isUnlocked) {
+      setTimeout(() => {
+        setShowPasswordDialog(true);
+      }, 500);
+    }
+  };
+
+  const handleCreateNewWallet = () => {
+    // For now, show import dialog - we'll add generate option later
+    setShowImportDialog(true);
+  };
+
+  const handleImportWallet = async (walletData) => {
+    setImportDialogLoading(true);
+
+    try {
+      // Check if wallet name already exists
+      if (wallets[walletData.name]) {
+        throw new Error(`Wallet '${walletData.name}' already exists`);
+      }
+
+      // Add wallet to encrypted storage
+      const storage = await addWallet(masterPassword, walletData);
+
+      // Update state
+      setWallets(storage.wallets);
+      setActiveWalletName(storage.active_wallet);
+      setAddressBook(storage.address_book);
+
+      // Close dialog
+      setShowImportDialog(false);
+      setImportDialogLoading(false);
+
+      showSnackbar(`Wallet '${walletData.name}' imported successfully!`, 'success');
+
+      // Refresh balance for new wallet
+      refreshWalletBalance(walletData.name, walletData);
+
+    } catch (error) {
+      setImportDialogLoading(false);
+      showSnackbar('Failed to import wallet: ' + error.message, 'error');
+    }
+  };
+
+  const handleWalletSelect = async (walletName) => {
+    try {
+      const storage = await setActiveWallet(masterPassword, walletName);
+      setActiveWalletName(storage.active_wallet);
+      showSnackbar(`Switched to wallet '${walletName}'`, 'info');
+    } catch (error) {
+      showSnackbar('Failed to switch wallet: ' + error.message, 'error');
+    }
+  };
+
+  const refreshWalletBalance = async (walletName, walletData) => {
+    try {
+      const { createClient, getAccountInfo } = require('./utils/xrplWallet');
+      const client = createClient(walletData.network);
+
+      await client.connect();
+      const accountInfo = await getAccountInfo(client, walletData.address);
+      await client.disconnect();
+
+      if (accountInfo.success) {
+        const { formatAmount } = require('./utils/xrplWallet');
+        const balance = formatAmount(accountInfo.balance);
+
+        setBalances(prev => ({
+          ...prev,
+          [walletName]: balance
+        }));
+
+        // Update stored balance
+        const { updateWalletBalance } = require('./utils/walletStorage');
+        await updateWalletBalance(masterPassword, walletName, balance);
+      }
+    } catch (error) {
+      console.error(`Failed to refresh balance for ${walletName}:`, error);
+      setBalances(prev => ({
+        ...prev,
+        [walletName]: 'Error'
+      }));
+    }
+  };
+
+  const handleRefreshBalance = () => {
+    if (activeWalletName && wallets[activeWalletName]) {
+      refreshWalletBalance(activeWalletName, wallets[activeWalletName]);
+      showSnackbar('Refreshing balance...', 'info');
+    }
+  };
+
+  const showSnackbar = (message, severity = 'info') => {
+    setSnackbar({ open: true, message, severity });
+  };
+
+  const handleSnackbarClose = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
+
+  const activeWallet = activeWalletName ? wallets[activeWalletName] : null;
+  const walletList = Object.values(wallets);
+
+  const handleWalletUpdate = useCallback((walletName, updates) => {
+    setWallets((prev) => {
+      if (!prev[walletName]) {
+        return prev;
+      }
+      return {
+        ...prev,
+        [walletName]: {
+          ...prev[walletName],
+          ...updates
+        }
+      };
+    });
+  }, []);
+
+  const handleAddressBookChange = useCallback((entries = []) => {
+    setAddressBook(entries);
+  }, []);
+
+  // Show password dialog if not unlocked
+  if (!isUnlocked) {
+    return (
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Box
+          sx={{
+            minHeight: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            bgcolor: 'background.default'
+          }}
+        >
+          <Typography variant="h4" color="primary">
+            XRP Wallet Manager
+          </Typography>
+        </Box>
+
+        <MasterPasswordDialog
+          open={showPasswordDialog}
+          onSubmit={handlePasswordSubmit}
+          onCancel={handlePasswordCancel}
+          mode={passwordDialogMode}
+          loading={passwordDialogLoading}
+          error={passwordDialogError}
+        />
+      </ThemeProvider>
+    );
+  }
+
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+        {/* Sidebar */}
+        <Drawer
+          variant="permanent"
+          sx={{
+            width: drawerWidth,
+            flexShrink: 0,
+            '& .MuiDrawer-paper': {
+              width: drawerWidth,
+              boxSizing: 'border-box',
+              bgcolor: 'background.paper',
+              borderRight: '1px solid rgba(255, 255, 255, 0.12)',
+            },
+          }}
+        >
+          <Toolbar>
+            <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
+              XRP Wallet Manager
+            </Typography>
+          </Toolbar>
+
+          {/* Wallet Management Buttons */}
+          <Box sx={{ p: 2 }}>
+            <Button
+              fullWidth
+              variant="contained"
+              startIcon={<Add />}
+              onClick={() => setShowImportDialog(true)}
+              sx={{ mb: 1 }}
+            >
+              New Wallet
+            </Button>
+          </Box>
+
+          {/* Wallet List */}
+          <List sx={{ flexGrow: 1, px: 1 }}>
+            {walletList.length === 0 ? (
+              <ListItem>
+                <Typography variant="body2" color="text.secondary">
+                  No wallets yet. Create your first wallet above.
+                </Typography>
+              </ListItem>
+            ) : (
+              walletList.map((wallet) => (
+                <ListItem key={wallet.name} disablePadding sx={{ mb: 1 }}>
+                  <ListItemButton
+                    selected={wallet.name === activeWalletName}
+                    onClick={() => handleWalletSelect(wallet.name)}
+                    sx={{
+                      borderRadius: 1,
+                      '&.Mui-selected': {
+                        bgcolor: 'primary.main',
+                        '&:hover': {
+                          bgcolor: 'primary.dark',
+                        },
+                      },
+                    }}
+                  >
+                    <ListItemIcon>
+                      <AccountBalanceWallet />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={wallet.name}
+                      secondary={
+                        <Box>
+                          <Typography variant="caption" component="div">
+                            {wallet.address?.slice(0, 8)}...
+                          </Typography>
+                          <Box display="flex" alignItems="center" gap={0.5} mt={0.5}>
+                            <Chip
+                              label={wallet.network}
+                              size="small"
+                              color={wallet.network === 'mainnet' ? 'primary' : 'secondary'}
+                              variant="outlined"
+                            />
+                            <Typography variant="caption">
+                              {balances[wallet.name] || wallet.balance || '0'} XRP
+                            </Typography>
+                          </Box>
+                        </Box>
+                      }
+                    />
+                  </ListItemButton>
+                </ListItem>
+              ))
+            )}
+          </List>
+        </Drawer>
+
+        {/* Main Content */}
+        <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+          {/* Top App Bar */}
+          <AppBar position="static" color="transparent" elevation={0}>
+            <Toolbar>
+              <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+                {activeWallet ? activeWallet.name : 'No Wallet Selected'}
+              </Typography>
+
+              {activeWallet && (
+                <Box display="flex" gap={1}>
+                  <IconButton onClick={handleRefreshBalance} color="inherit">
+                    <Refresh />
+                  </IconButton>
+                  <Chip
+                    icon={<NetworkCheck />}
+                    label={activeWallet.network}
+                    color={activeWallet.network === 'mainnet' ? 'primary' : 'secondary'}
+                    variant="outlined"
+                  />
+                </Box>
+              )}
+            </Toolbar>
+          </AppBar>
+
+          {/* Main Content Area */}
+          <Box sx={{ flexGrow: 1, p: 3 }}>
+            {!activeWallet ? (
+              // No wallet selected state
+              <Box
+                display="flex"
+                flexDirection="column"
+                alignItems="center"
+                justifyContent="center"
+                minHeight="400px"
+                textAlign="center"
+              >
+                <AccountBalanceWallet sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                <Typography variant="h5" gutterBottom>
+                  No Wallet Selected
+                </Typography>
+                <Typography variant="body1" color="text.secondary" paragraph>
+                  Create or select a wallet to get started
+                </Typography>
+                <Button
+                  variant="contained"
+                  size="large"
+                  startIcon={<Add />}
+                  onClick={() => setShowImportDialog(true)}
+                >
+                  Create Your First Wallet
+                </Button>
+              </Box>
+            ) : (
+              // Wallet tabs
+              <Box>
+                <Tabs
+                  value={selectedTab}
+                  onChange={(e, newValue) => setSelectedTab(newValue)}
+                  sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}
+                >
+                  <Tab icon={<AccountBalanceWallet />} label="Wallet" />
+                  <Tab icon={<Send />} label="Send" />
+                  <Tab icon={<CallReceived />} label="Receive" />
+                  <Tab icon={<History />} label="History" />
+                  <Tab icon={<Security />} label="Multi-Sig" />
+                  <Tab icon={<People />} label="Address Book" />
+                  <Tab icon={<Settings />} label="Settings" />
+                </Tabs>
+
+                <WalletTabs
+                  selectedTab={selectedTab}
+                  wallet={activeWallet}
+                  balance={balances[activeWalletName] || activeWallet.balance || '0'}
+                  onRefreshBalance={handleRefreshBalance}
+                  onShowSnackbar={showSnackbar}
+                  addressBook={addressBook}
+                  masterPassword={masterPassword}
+                  onWalletUpdate={handleWalletUpdate}
+                  onAddressBookChange={handleAddressBookChange}
+                />
+              </Box>
+            )}
+          </Box>
+        </Box>
+
+        {/* Dialogs */}
+        <ImportWalletDialog
+          open={showImportDialog}
+          onClose={() => setShowImportDialog(false)}
+          onImport={handleImportWallet}
+          loading={importDialogLoading}
+        />
+
+        {/* Snackbar for notifications */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={handleSnackbarClose}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        >
+          <Alert
+            onClose={handleSnackbarClose}
+            severity={snackbar.severity}
+            sx={{ width: '100%' }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+
+        {/* Loading backdrop */}
+        <Backdrop
+          sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+          open={loading}
+        >
+          <CircularProgress color="inherit" />
+        </Backdrop>
+      </Box>
+    </ThemeProvider>
+  );
+}
+
+export default App;
