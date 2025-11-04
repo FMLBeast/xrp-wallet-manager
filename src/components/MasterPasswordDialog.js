@@ -129,32 +129,27 @@ export default function MasterPasswordDialog({
   const handleSubmit = () => {
     setValidationError('');
 
-    // CRITICAL: Trim whitespace to prevent password mismatch issues
-    const normalizedPassword = password.trim();
-
-    if (!normalizedPassword) {
+    if (!password) {
       setValidationError('Password is required');
       return;
     }
 
     if (isCreateMode) {
       // Validate password strength for creation
-      const validation = validatePassword(normalizedPassword);
+      const validation = validatePassword(password);
       if (!validation.isValid) {
         setValidationError(validation.errors[0]);
         return;
       }
 
-      // Check password confirmation (also trim confirm password)
-      const normalizedConfirm = confirmPassword.trim();
-      if (normalizedPassword !== normalizedConfirm) {
+      // Check password confirmation
+      if (password !== confirmPassword) {
         setValidationError('Passwords do not match');
         return;
       }
     }
 
-    // Always pass the trimmed password
-    onSubmit(normalizedPassword);
+    onSubmit(password);
   };
 
   const handleKeyPress = (event) => {
@@ -203,8 +198,6 @@ export default function MasterPasswordDialog({
             onKeyPress={handleKeyPress}
             margin="normal"
             disabled={loading}
-            autoComplete="off"
-            spellCheck="false"
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
@@ -217,8 +210,6 @@ export default function MasterPasswordDialog({
                 </InputAdornment>
               ),
             }}
-            helperText={password !== password.trim() && password ? 'Warning: Password has leading or trailing spaces' : ''}
-            error={password !== password.trim() && password}
           />
 
           {isCreateMode && password && (
@@ -250,8 +241,6 @@ export default function MasterPasswordDialog({
               onKeyPress={handleKeyPress}
               margin="normal"
               disabled={loading}
-              autoComplete="off"
-              spellCheck="false"
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
@@ -264,8 +253,6 @@ export default function MasterPasswordDialog({
                   </InputAdornment>
                 ),
               }}
-              helperText={confirmPassword !== confirmPassword.trim() && confirmPassword ? 'Warning: Password has leading or trailing spaces' : ''}
-              error={confirmPassword !== confirmPassword.trim() && confirmPassword}
             />
           )}
 
