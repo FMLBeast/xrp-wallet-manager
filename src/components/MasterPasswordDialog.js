@@ -105,6 +105,7 @@ export default function MasterPasswordDialog({
   open,
   onSubmit,
   onCancel,
+  onReset,
   mode = 'unlock',
   loading = false,
   error = ''
@@ -259,6 +260,13 @@ export default function MasterPasswordDialog({
           {(error || validationError) && (
             <Alert severity="error" sx={{ mt: 2 }}>
               {validationError || error}
+              {!isCreateMode && error.includes('Invalid') && (
+                <Box mt={1}>
+                  <Typography variant="caption" color="text.secondary">
+                    Can't remember your password? You can reset all wallet data to start fresh.
+                  </Typography>
+                </Box>
+              )}
             </Alert>
           )}
 
@@ -274,19 +282,35 @@ export default function MasterPasswordDialog({
       </DialogContent>
 
       <DialogActions sx={{ p: 3, pt: 1 }}>
-        {isCreateMode && (
-          <Button onClick={onCancel} disabled={loading}>
-            Cancel
-          </Button>
-        )}
-        <Button
-          onClick={handleSubmit}
-          variant="contained"
-          disabled={loading || !password || (isCreateMode && !confirmPassword)}
-          startIcon={loading && <CircularProgress size={16} />}
-        >
-          {loading ? 'Processing...' : (isCreateMode ? 'Create Password' : 'Unlock')}
-        </Button>
+        <Box display="flex" justifyContent="space-between" width="100%">
+          <Box>
+            {!isCreateMode && error.includes('Invalid') && onReset && (
+              <Button
+                onClick={onReset}
+                disabled={loading}
+                color="error"
+                size="small"
+              >
+                Reset All Data
+              </Button>
+            )}
+          </Box>
+          <Box display="flex" gap={1}>
+            {isCreateMode && (
+              <Button onClick={onCancel} disabled={loading}>
+                Cancel
+              </Button>
+            )}
+            <Button
+              onClick={handleSubmit}
+              variant="contained"
+              disabled={loading || !password || (isCreateMode && !confirmPassword)}
+              startIcon={loading && <CircularProgress size={16} />}
+            >
+              {loading ? 'Processing...' : (isCreateMode ? 'Create Password' : 'Unlock')}
+            </Button>
+          </Box>
+        </Box>
       </DialogActions>
     </Dialog>
   );

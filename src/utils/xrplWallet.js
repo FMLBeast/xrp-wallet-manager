@@ -27,12 +27,12 @@ export function detectAlgorithm(secret) {
   }
 
   // Family seed: starts with 's' and encoded in base58
-  if (secret.match(/^s[a-km-zA-HJ-NP-Z1-9]{25,34}$/)) {
+  if (secret.match(/^s[a-km-zA-HJ-NP-Z1-9]{25,50}$/)) {
     return 'secp256k1'; // Default for family seeds
   }
 
   // Mnemonic phrase: 12 or 24 words
-  const words = secret.trim().split(/\\s+/);
+  const words = secret.trim().split(/\s+/);
   if (words.length === 12 || words.length === 24) {
     return 'secp256k1'; // Default for mnemonic
   }
@@ -55,12 +55,12 @@ export function detectSecretType(secret) {
   }
 
   // Family seed
-  if (secret.match(/^s[a-km-zA-HJ-NP-Z1-9]{25,34}$/)) {
+  if (secret.match(/^s[a-km-zA-HJ-NP-Z1-9]{25,50}$/)) {
     return 'seed';
   }
 
   // Mnemonic phrase
-  const words = secret.trim().split(/\\s+/);
+  const words = secret.trim().split(/\s+/);
   if (words.length === 12 || words.length === 24) {
     return 'mnemonic';
   }
@@ -311,8 +311,13 @@ export function isValidDestinationTag(tag) {
     return true; // Optional
   }
 
+  // Must be a whole number, not a decimal
+  if (typeof tag === 'string' && tag.includes('.')) {
+    return false;
+  }
+
   const num = parseInt(tag);
-  return !isNaN(num) && num >= 0 && num <= 4294967295; // 32-bit unsigned integer
+  return !isNaN(num) && num >= 0 && num <= 4294967295 && num.toString() === tag.toString(); // 32-bit unsigned integer
 }
 
 /**
