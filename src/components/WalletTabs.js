@@ -83,7 +83,9 @@ const WalletTabs = ({
   addressBook = [],
   masterPassword,
   onWalletUpdate,
-  onAddressBookChange
+  onAddressBookChange,
+  loadingStates = {},
+  isOperationLoading = () => false
 }) => {
   // Transaction state
   const [sendForm, setSendForm] = useState({
@@ -167,6 +169,10 @@ const WalletTabs = ({
     }
 
     setSendLoading(true);
+    if (isOperationLoading) {
+      // Use centralized loading state management
+      // This will be handled by the parent component
+    }
 
     try {
       const client = createClient(wallet.network);
@@ -432,9 +438,14 @@ const WalletTabs = ({
                       <TableRow>
                         <TableCell><strong>Balance</strong></TableCell>
                         <TableCell>
-                          <Typography variant="h6" color="primary">
-                            {balance} XRP
-                          </Typography>
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <Typography variant="h6" color="primary">
+                              {isOperationLoading('accountInfo', wallet?.name) ? 'Loading...' : `${balance} XRP`}
+                            </Typography>
+                            {isOperationLoading('accountInfo', wallet?.name) && (
+                              <CircularProgress size={20} />
+                            )}
+                          </Box>
                         </TableCell>
                       </TableRow>
                       <TableRow>
@@ -471,11 +482,12 @@ const WalletTabs = ({
                     </Button>
                     <Button
                       variant="outlined"
-                      startIcon={<Refresh />}
+                      startIcon={isOperationLoading('balanceRefresh', wallet?.name) ? <CircularProgress size={16} /> : <Refresh />}
                       onClick={onRefreshBalance}
+                      disabled={isOperationLoading('balanceRefresh', wallet?.name)}
                       size="small"
                     >
-                      Refresh
+                      {isOperationLoading('balanceRefresh', wallet?.name) ? 'Refreshing...' : 'Refresh'}
                     </Button>
                   </Box>
                 </CardContent>
@@ -611,11 +623,11 @@ const WalletTabs = ({
                     <Button
                       variant="contained"
                       onClick={handlePrepareSend}
-                      disabled={sendLoading || !sendForm.destination || !sendForm.amount}
-                      startIcon={<Send />}
+                      disabled={sendLoading || isOperationLoading('sendingTransaction') || !sendForm.destination || !sendForm.amount}
+                      startIcon={(sendLoading || isOperationLoading('sendingTransaction')) ? <CircularProgress size={16} color="inherit" /> : <Send />}
                       size="large"
                     >
-                      {sendLoading ? 'Preparing...' : 'Send XRP'}
+                      {(sendLoading || isOperationLoading('sendingTransaction')) ? 'Preparing...' : 'Send XRP'}
                     </Button>
                   </Box>
                 </CardContent>
@@ -633,7 +645,14 @@ const WalletTabs = ({
                     <TableBody>
                       <TableRow>
                         <TableCell>Current Balance</TableCell>
-                        <TableCell>{balance} XRP</TableCell>
+                        <TableCell>
+                          <Box display="flex" alignItems="center" gap={1}>
+                            {isOperationLoading('accountInfo', wallet?.name) ? 'Loading...' : `${balance} XRP`}
+                            {isOperationLoading('accountInfo', wallet?.name) && (
+                              <CircularProgress size={16} />
+                            )}
+                          </Box>
+                        </TableCell>
                       </TableRow>
                       <TableRow>
                         <TableCell>Send Amount</TableCell>
@@ -663,7 +682,16 @@ const WalletTabs = ({
         return <QRCodeDisplay wallet={wallet} onShowSnackbar={onShowSnackbar} />;
 
       case 3: // History
-        return <TransactionHistory wallet={wallet} onShowSnackbar={onShowSnackbar} />;
+        return (
+          <TransactionHistory
+            wallet={wallet}
+            onShowSnackbar={onShowSnackbar}
+            isLoading={isOperationLoading('transactionHistory', wallet?.name)}
+            onLoadingChange={(operation, key, isLoading) => {
+              // This will be handled by App.js through the centralized loading state
+            }}
+          />
+        );
 
       case 4: // Multi-Sig
         return (

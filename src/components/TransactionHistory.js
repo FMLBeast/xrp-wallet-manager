@@ -37,7 +37,9 @@ import { formatAmount, getExplorerUrl, createClient } from '../utils/xrplWallet'
 
 export default function TransactionHistory({
   wallet,
-  onShowSnackbar
+  onShowSnackbar,
+  isLoading = false,
+  onLoadingChange
 }) {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -55,6 +57,9 @@ export default function TransactionHistory({
     if (!wallet) return;
 
     setLoading(true);
+    if (onLoadingChange) {
+      onLoadingChange('transactionHistory', wallet.name, true);
+    }
     try {
       const client = createClient(wallet.network);
       await client.connect();
@@ -95,6 +100,9 @@ export default function TransactionHistory({
       onShowSnackbar('Failed to load transaction history: ' + error.message, 'error');
     } finally {
       setLoading(false);
+      if (onLoadingChange) {
+        onLoadingChange('transactionHistory', wallet.name, false);
+      }
     }
   };
 
@@ -186,11 +194,11 @@ export default function TransactionHistory({
         </Typography>
         <Button
           variant="outlined"
-          startIcon={loading ? <CircularProgress size={16} /> : <Refresh />}
+          startIcon={(loading || isLoading) ? <CircularProgress size={16} /> : <Refresh />}
           onClick={loadTransactionHistory}
-          disabled={loading}
+          disabled={loading || isLoading}
         >
-          {loading ? 'Loading...' : 'Refresh'}
+          {(loading || isLoading) ? 'Loading...' : 'Refresh'}
         </Button>
       </Box>
 
