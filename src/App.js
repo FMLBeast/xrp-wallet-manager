@@ -227,7 +227,7 @@ function App() {
 
         // Refresh balances for all wallets
         Object.keys(storage.wallets || {}).forEach(walletName => {
-          refreshWalletBalance(walletName, storage.wallets[walletName]);
+          refreshWalletBalance(walletName, storage.wallets[walletName], password);
         });
       }
     } catch (error) {
@@ -326,7 +326,7 @@ function App() {
       showSnackbar(`Wallet '${walletData.name}' imported successfully!`, 'success');
 
       // Refresh balance for new wallet
-      refreshWalletBalance(walletData.name, walletData);
+      refreshWalletBalance(walletData.name, walletData, masterPassword);
 
     } catch (error) {
       setImportDialogLoading(false);
@@ -361,7 +361,7 @@ function App() {
     }
   };
 
-  const refreshWalletBalance = async (walletName, walletData) => {
+  const refreshWalletBalance = async (walletName, walletData, masterPasswordOverride = null) => {
     setOperationLoading('balanceRefresh', walletName, true);
     setOperationLoading('networkConnection', walletName, true);
 
@@ -387,7 +387,14 @@ function App() {
 
         // Update stored balance
         const { updateWalletBalance } = require('./utils/walletStorage');
-        await updateWalletBalance(masterPassword, walletName, balance);
+        const passwordToUse = masterPasswordOverride || masterPassword;
+
+        if (!passwordToUse) {
+          console.warn(`No master password available for updating balance of ${walletName}`);
+          return;
+        }
+
+        await updateWalletBalance(passwordToUse, walletName, balance);
 
         showSnackbar(`Balance updated for ${walletName}`, 'success');
       }
