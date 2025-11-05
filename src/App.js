@@ -450,7 +450,7 @@ function App() {
   const handleDragEnd = useCallback(async (event) => {
     const { active, over } = event;
 
-    if (active.id !== over?.id) {
+    if (over && active.id !== over.id) {
       const oldIndex = walletList.findIndex(wallet => wallet.name === active.id);
       const newIndex = walletList.findIndex(wallet => wallet.name === over.id);
 
