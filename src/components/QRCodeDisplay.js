@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import QRCode from 'qrcode';
 import {
   Box,
@@ -28,11 +28,7 @@ export default function QRCodeDisplay({ wallet, onShowSnackbar }) {
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [paymentUrl, setPaymentUrl] = useState('');
 
-  useEffect(() => {
-    generateQRCode();
-  }, [wallet, amount, destinationTag, memo, generateQRCode]);
-
-  const generateQRCode = async () => {
+  const generateQRCode = useCallback(async () => {
     if (!wallet) return;
 
     // Create XRP payment URL
@@ -70,7 +66,11 @@ export default function QRCodeDisplay({ wallet, onShowSnackbar }) {
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&format=png&data=${encodeURIComponent(url)}`;
       setQrCodeUrl(qrUrl);
     }
-  };
+  }, [wallet, amount, destinationTag, memo]);
+
+  useEffect(() => {
+    generateQRCode();
+  }, [generateQRCode]);
 
   const handleCopyAddress = async () => {
     try {
