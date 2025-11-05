@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Card,
@@ -46,13 +46,7 @@ export default function TransactionHistory({
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  useEffect(() => {
-    if (wallet) {
-      loadTransactionHistory();
-    }
-  }, [wallet, limit, loadTransactionHistory]);
-
-  const loadTransactionHistory = async () => {
+  const loadTransactionHistory = useCallback(async () => {
     if (!wallet) return;
 
     setLoading(true);
@@ -103,7 +97,13 @@ export default function TransactionHistory({
         onLoadingChange('transactionHistory', wallet.name, false);
       }
     }
-  };
+  }, [wallet, limit, onLoadingChange, onShowSnackbar]);
+
+  useEffect(() => {
+    if (wallet) {
+      loadTransactionHistory();
+    }
+  }, [wallet, loadTransactionHistory]);
 
   const getTransactionDirection = (tx) => {
     if (tx.account === wallet.address) {
@@ -115,8 +115,6 @@ export default function TransactionHistory({
   };
 
   const getTransactionAmount = (tx) => {
-    const direction = getTransactionDirection(tx);
-
     if (typeof tx.amount === 'string') {
       return formatAmount(tx.amount);
     } else if (tx.amount && typeof tx.amount === 'object') {
