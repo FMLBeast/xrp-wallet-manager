@@ -35,6 +35,7 @@ export default function TransactionConfirmDialog({
   onConfirm,
   transaction,
   wallet,
+  balance,
   loading = false
 }) {
   const [confirming, setConfirming] = useState(false);
@@ -230,11 +231,11 @@ export default function TransactionConfirmDialog({
           </Card>
 
           {/* Balance Warning */}
-          {wallet.balance && parseFloat(wallet.balance) < totalAmount && (
+          {balance && parseFloat(balance) < totalAmount && (
             <Alert severity="error" sx={{ mb: 2 }}>
               <Typography variant="body2">
                 <strong>Insufficient Balance:</strong> Your current balance
-                ({formatAmount(wallet.balance)} XRP) is less than the total transaction cost
+                ({formatAmount(balance)} XRP) is less than the total transaction cost
                 ({totalAmount.toFixed(6)} XRP).
               </Typography>
             </Alert>
@@ -253,7 +254,7 @@ export default function TransactionConfirmDialog({
         <Button
           onClick={handleConfirm}
           variant="contained"
-          disabled={confirming || (wallet.balance && parseFloat(wallet.balance) < totalAmount)}
+          disabled={confirming || (balance && parseFloat(balance) < totalAmount)}
           startIcon={confirming ? <CircularProgress size={16} /> : <Send />}
           size="large"
           color="primary"

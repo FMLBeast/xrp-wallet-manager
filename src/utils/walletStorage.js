@@ -4,6 +4,7 @@
  */
 
 import { encryptData, decryptData, decryptPythonWalletData } from './encryption';
+import { cacheKey } from './keyCache.js';
 
 const STORAGE_VERSION = 1;
 
@@ -44,6 +45,10 @@ export async function loadWalletStorage(masterPassword) {
     throw new Error('Electron API not available');
   }
 
+  if (!masterPassword) {
+    throw new Error('Master password is required');
+  }
+
   try {
     // Get encrypted data from main process
     const encryptedData = await window.electronAPI.invoke('wallet-storage-load');
@@ -60,6 +65,13 @@ export async function loadWalletStorage(masterPassword) {
     if (envelope.version === STORAGE_VERSION) {
       // New Electron format
       decryptedJson = decryptData(masterPassword, envelope);
+
+      // Cache the encryption key for performance after successful decryption
+      if (envelope.salt) {
+        const CryptoJS = require('crypto-js');
+        const salt = CryptoJS.enc.Hex.parse(envelope.salt);
+        cacheKey(masterPassword, salt);
+      }
     } else {
       // Legacy Python format or old version - try Python compatibility
       console.log('Detected legacy wallet format, attempting Python compatibility mode');
@@ -126,13 +138,43 @@ export async function addWallet(masterPassword, walletInfo) {
     throw new Error('Master password is required for adding wallets');
   }
 
-  console.log('addWallet: Attempting to load wallet storage...');
+  console.log('addWallet: Attempting to add wallet for:', walletInfo.name);
+  console.log('addWallet: Master password provided:', !!masterPassword);
+
   try {
-    const storage = await loadWalletStorage(masterPassword);
-    console.log('addWallet: Successfully loaded wallet storage');
+    // First, check if storage file exists
+    const exists = await window.electronAPI.invoke('wallet-storage-exists');
+    console.log('addWallet: Storage file exists:', exists);
+
+    let storage;
+    if (!exists) {
+      // No storage file - this is the first wallet
+      console.log('addWallet: No storage file found, creating empty storage for first wallet');
+      storage = {
+        wallets: {},
+        active_wallet: null,
+        address_book: []
+      };
+    } else {
+      // Storage file exists - load it
+      console.log('addWallet: Loading existing wallet storage...');
+      try {
+        storage = await loadWalletStorage(masterPassword);
+        console.log('addWallet: Successfully loaded existing wallet storage');
+      } catch (error) {
+        console.error('addWallet: Failed to load storage with provided password:', error.message);
+        // If we can't load with the provided password, there might be a consistency issue
+        // Log the password characteristics for debugging
+        console.log('addWallet: Password length:', masterPassword ? masterPassword.length : 'null');
+        console.log('addWallet: Password has leading/trailing spaces:', masterPassword !== masterPassword?.trim());
+        throw new Error(`Failed to load existing wallet storage: ${error.message}`);
+      }
+    }
+
     return await _addWalletToStorage(masterPassword, walletInfo, storage);
   } catch (error) {
-    console.error('addWallet: Failed to load wallet storage:', error.message);
+    console.error('addWallet: Error occurred:', error.message);
+    console.error('addWallet: Full error details:', error);
     throw error;
   }
 }

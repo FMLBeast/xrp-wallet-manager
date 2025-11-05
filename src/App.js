@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   ThemeProvider,
   createTheme,
@@ -35,6 +35,7 @@ import {
   Settings,
   Security,
   NetworkCheck,
+  Science,
   Download,
   Upload,
   People
@@ -44,8 +45,9 @@ import {
 import MasterPasswordDialog from './components/MasterPasswordDialog';
 import ImportWalletDialog from './components/ImportWalletDialog';
 import WalletTabs from './components/WalletTabs';
-import { walletsFileExists, loadWalletStorage, addWallet, setActiveWallet, resetWalletStorage } from './utils/walletStorage';
+import { walletsFileExists, loadWalletStorage, addWallet, setActiveWallet, resetWalletStorage, addAddressBookEntry } from './utils/walletStorage';
 import { generateTestWallet } from './utils/xrplWallet';
+import { cacheKey, clearKey } from './utils/keyCache.js';
 
 const theme = createTheme({
   palette: {
@@ -109,6 +111,8 @@ function App() {
 
     return () => {
       cleanupElectronMenuHandlers();
+      // Clear cached encryption key when app closes
+      clearKey();
     };
   }, []);
 
@@ -207,6 +211,15 @@ function App() {
         setWallets(storage.wallets || {});
         setActiveWalletName(storage.active_wallet);
         setAddressBook(storage.address_book || []);
+
+        // Clean up any existing "Error" balance states and initialize balances
+        const initialBalances = {};
+        Object.keys(storage.wallets || {}).forEach(walletName => {
+          const wallet = storage.wallets[walletName];
+          initialBalances[walletName] = wallet.balance || '0';
+        });
+        setBalances(initialBalances);
+
         setIsUnlocked(true);
         setShowPasswordDialog(false);
 
@@ -242,6 +255,9 @@ function App() {
 
     try {
       await resetWalletStorage();
+
+      // Clear cached encryption key
+      clearKey();
 
       // Reset app state
       setWallets({});
@@ -282,10 +298,26 @@ function App() {
       // Add wallet to encrypted storage
       const storage = await addWallet(masterPassword, walletData);
 
-      // Update state
-      setWallets(storage.wallets);
-      setActiveWalletName(storage.active_wallet);
-      setAddressBook(storage.address_book);
+      // Auto-add wallet address to address book for easy reference
+      try {
+        const addressBookEntry = {
+          label: `${walletData.name} (${walletData.network})`,
+          address: walletData.address,
+          destination_tag: null
+        };
+        const updatedStorage = await addAddressBookEntry(masterPassword, addressBookEntry);
+
+        // Update state with address book included
+        setWallets(updatedStorage.wallets);
+        setActiveWalletName(updatedStorage.active_wallet);
+        setAddressBook(updatedStorage.address_book);
+      } catch (addressBookError) {
+        console.warn('Failed to add wallet to address book:', addressBookError);
+        // Still update state with wallet, just without address book update
+        setWallets(storage.wallets);
+        setActiveWalletName(storage.active_wallet);
+        setAddressBook(storage.address_book);
+      }
 
       // Close dialog
       setShowImportDialog(false);
@@ -303,11 +335,28 @@ function App() {
   };
 
   const handleWalletSelect = async (walletName) => {
+    const startTime = Date.now();
+    console.log(`[Performance] Starting wallet switch to '${walletName}'`);
+
     try {
+      // Immediate UI feedback - update state optimistically
+      setActiveWalletName(walletName);
+      const uiUpdateTime = Date.now();
+      console.log(`[Performance] UI updated in ${uiUpdateTime - startTime}ms`);
+
       const storage = await setActiveWallet(masterPassword, walletName);
+      const encryptionTime = Date.now();
+      console.log(`[Performance] Wallet switch completed in ${encryptionTime - startTime}ms (encryption: ${encryptionTime - uiUpdateTime}ms)`);
+
+      // Confirm the state matches what was saved (defensive programming)
       setActiveWalletName(storage.active_wallet);
       showSnackbar(`Switched to wallet '${walletName}'`, 'info');
     } catch (error) {
+      const errorTime = Date.now();
+      console.log(`[Performance] Wallet switch failed after ${errorTime - startTime}ms`);
+
+      // Revert optimistic update on error
+      setActiveWalletName(activeWalletName);
       showSnackbar('Failed to switch wallet: ' + error.message, 'error');
     }
   };
@@ -344,10 +393,15 @@ function App() {
       }
     } catch (error) {
       console.error(`Failed to refresh balance for ${walletName}:`, error);
-      setBalances(prev => ({
-        ...prev,
-        [walletName]: 'Error'
-      }));
+      // Don't set balance to 'Error' - preserve the last known balance or fallback to wallet's stored balance
+      const currentBalance = balances[walletName] || wallets[walletName]?.balance || '0';
+      if (currentBalance === 'Error') {
+        // If the current balance is 'Error', reset it to the stored balance or '0'
+        setBalances(prev => ({
+          ...prev,
+          [walletName]: wallets[walletName]?.balance || '0'
+        }));
+      }
       showSnackbar(`Failed to refresh balance for ${walletName}: ${error.message}`, 'error');
     } finally {
       setOperationLoading('balanceRefresh', walletName, false);
@@ -389,8 +443,15 @@ function App() {
     return loadingStates[operation]?.[key] || false;
   };
 
-  const activeWallet = activeWalletName ? wallets[activeWalletName] : null;
-  const walletList = Object.values(wallets);
+  // Memoize activeWallet to prevent unnecessary re-renders
+  const activeWallet = useMemo(() => {
+    return activeWalletName ? wallets[activeWalletName] : null;
+  }, [activeWalletName, wallets]);
+
+  // Memoize walletList to prevent unnecessary re-renders of the sidebar
+  const walletList = useMemo(() => {
+    return Object.values(wallets);
+  }, [wallets]);
 
   const handleWalletUpdate = useCallback((walletName, updates) => {
     setWallets((prev) => {
@@ -551,7 +612,8 @@ function App() {
                   </IconButton>
                   <Chip
                     icon={isOperationLoading('networkConnection', activeWallet.name) ?
-                      <CircularProgress size={16} /> : <NetworkCheck />}
+                      <CircularProgress size={16} /> :
+                      (activeWallet.network === 'testnet' ? <Science /> : <NetworkCheck />)}
                     label={isOperationLoading('networkConnection', activeWallet.name) ?
                       'Connecting...' : activeWallet.network}
                     color={activeWallet.network === 'mainnet' ? 'primary' : 'secondary'}
@@ -613,6 +675,7 @@ function App() {
                   balance={balances[activeWalletName] || activeWallet.balance || '0'}
                   onRefreshBalance={handleRefreshBalance}
                   onShowSnackbar={showSnackbar}
+                  onTabChange={setSelectedTab}
                   addressBook={addressBook}
                   masterPassword={masterPassword}
                   onWalletUpdate={handleWalletUpdate}

@@ -292,7 +292,7 @@ export function formatAmount(drops) {
 }
 
 /**
- * Validate XRP address
+ * Validate XRP address format
  */
 export function isValidAddress(address) {
   try {
@@ -301,6 +301,36 @@ export function isValidAddress(address) {
   } catch (error) {
     return false;
   }
+}
+
+/**
+ * Validate XRP address with network compatibility check
+ * Returns { valid: boolean, error?: string }
+ */
+export function validateAddressForNetwork(address, walletNetwork) {
+  if (!address) {
+    return { valid: false, error: 'Address is required' };
+  }
+
+  if (!isValidAddress(address)) {
+    return { valid: false, error: 'Invalid XRP address format' };
+  }
+
+  // Note: XRP addresses look the same on mainnet and testnet
+  // This is more of a safety check to remind users about network compatibility
+  if (walletNetwork === 'testnet') {
+    return {
+      valid: true,
+      warning: 'Make sure this address is valid on testnet. Testnet XRP has no real value.'
+    };
+  } else if (walletNetwork === 'mainnet') {
+    return {
+      valid: true,
+      warning: 'Make sure this address is valid on mainnet. This will send real XRP with value.'
+    };
+  }
+
+  return { valid: true };
 }
 
 /**

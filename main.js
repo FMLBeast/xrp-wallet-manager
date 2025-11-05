@@ -40,10 +40,8 @@ function createWindow() {
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
 
-    // Open DevTools in development
-    if (isDev) {
-      mainWindow.webContents.openDevTools();
-    }
+    // DevTools can be opened manually via View menu or F12
+    // Auto-opening disabled for cleaner startup experience
   });
 
   // Emitted when the window is closed

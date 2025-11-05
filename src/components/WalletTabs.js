@@ -37,6 +37,7 @@ import {
   ExpandMore,
   AccountBalanceWallet,
   NetworkCheck,
+  Science,
   Security,
   Settings,
   Download,
@@ -61,6 +62,7 @@ import {
   createWalletFromSecret,
   validateAmount,
   isValidAddress,
+  validateAddressForNetwork,
   isValidDestinationTag,
   getNetworkConfig,
   getAccountExplorerUrl
@@ -80,6 +82,7 @@ const WalletTabs = ({
   balance,
   onRefreshBalance,
   onShowSnackbar,
+  onTabChange,
   addressBook = [],
   masterPassword,
   onWalletUpdate,
@@ -135,11 +138,17 @@ const WalletTabs = ({
   const validateSendForm = () => {
     const errors = {};
 
-    // Validate destination
+    // Validate destination with network compatibility
     if (!sendForm.destination) {
       errors.destination = 'Destination address is required';
-    } else if (!isValidAddress(sendForm.destination)) {
-      errors.destination = 'Invalid destination address format';
+    } else {
+      const addressValidation = validateAddressForNetwork(sendForm.destination, wallet?.network || 'mainnet');
+      if (!addressValidation.valid) {
+        errors.destination = addressValidation.error;
+      } else if (addressValidation.warning) {
+        // Store warning to display separately if needed
+        console.log('[Network Warning]', addressValidation.warning);
+      }
     }
 
     // Validate amount
@@ -502,7 +511,7 @@ const WalletTabs = ({
                   </Typography>
 
                   <List>
-                    <ListItem button onClick={() => {/* Switch to send tab */}}>
+                    <ListItem button onClick={() => onTabChange && onTabChange(1)}>
                       <ListItemIcon>
                         <Send />
                       </ListItemIcon>
@@ -511,7 +520,7 @@ const WalletTabs = ({
                         secondary="Send XRP to another address"
                       />
                     </ListItem>
-                    <ListItem button onClick={() => {/* Switch to receive tab */}}>
+                    <ListItem button onClick={() => onTabChange && onTabChange(2)}>
                       <ListItemIcon>
                         <AccountBalanceWallet />
                       </ListItemIcon>
@@ -752,7 +761,7 @@ const WalletTabs = ({
                       </MenuItem>
                       <MenuItem value="testnet">
                         <Box display="flex" alignItems="center" gap={1}>
-                          <NetworkCheck color="secondary" />
+                          <Science color="secondary" />
                           <Box>
                             <Typography>Testnet</Typography>
                             <Typography variant="caption" color="text.secondary">
@@ -887,6 +896,7 @@ const WalletTabs = ({
         onConfirm={handleConfirmSend}
         transaction={preparedTransaction}
         wallet={wallet}
+        balance={balance}
       />
 
       <PasswordPromptDialog

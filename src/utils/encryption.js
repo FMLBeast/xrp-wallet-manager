@@ -4,6 +4,7 @@
  */
 
 import CryptoJS from 'crypto-js';
+import { getCachedKey, getCachedSalt, hasKey } from './keyCache.js';
 
 // Security constants matching Python version
 const PBKDF2_ITERATIONS = 390000;
@@ -32,22 +33,33 @@ function deriveKey(password, salt) {
 /**
  * Encrypt data using HMAC-based stream cipher
  * Matches the Python version's encryption scheme
+ * Uses cached key for performance when available
  */
 export function encryptData(password, plaintext) {
-  // Debug: Log password characteristics (not the actual password!)
-  console.log('[Encrypt] Password length:', password.length);
-  console.log('[Encrypt] Has leading space:', password[0] === ' ');
-  console.log('[Encrypt] Has trailing space:', password[password.length - 1] === ' ');
-
   // Convert plaintext to bytes
   const plaintextBytes = CryptoJS.enc.Utf8.parse(plaintext);
 
-  // Generate random salt and nonce
-  const salt = generateRandomBytes(SALT_LENGTH);
-  const nonce = generateRandomBytes(NONCE_LENGTH);
+  let key, salt;
 
-  // Derive encryption key
-  const key = deriveKey(password, salt);
+  // Use cached key for performance if available
+  if (hasKey()) {
+    console.log('[Encrypt] Using cached encryption key');
+    key = getCachedKey();
+    salt = getCachedSalt();
+  } else {
+    // Fallback to password-based key derivation
+    console.log('[Encrypt] No cached key, deriving from password...');
+    console.log('[Encrypt] Password length:', password.length);
+    console.log('[Encrypt] Has leading space:', password[0] === ' ');
+    console.log('[Encrypt] Has trailing space:', password[password.length - 1] === ' ');
+
+    // Generate random salt and derive key
+    salt = generateRandomBytes(SALT_LENGTH);
+    key = deriveKey(password, salt);
+  }
+
+  // Generate random nonce
+  const nonce = generateRandomBytes(NONCE_LENGTH);
 
   // Create HMAC key from derived key
   const hmacKey = CryptoJS.HmacSHA256(nonce, key);
@@ -61,11 +73,12 @@ export function encryptData(password, plaintext) {
 
   const ciphertext = encrypted.ciphertext;
 
-  // Calculate MAC
-  const macData = CryptoJS.lib.WordArray.create()
-    .concat(salt)
-    .concat(nonce)
-    .concat(ciphertext);
+  // Calculate MAC using manual hex concatenation for consistency
+  const saltHex = salt.toString(CryptoJS.enc.Hex);
+  const nonceHex = nonce.toString(CryptoJS.enc.Hex);
+  const ciphertextHex = ciphertext.toString(CryptoJS.enc.Hex);
+  const macDataHex = saltHex + nonceHex + ciphertextHex;
+  const macData = CryptoJS.enc.Hex.parse(macDataHex);
 
   const mac = CryptoJS.HmacSHA256(macData, key);
 
@@ -88,25 +101,34 @@ export function encryptData(password, plaintext) {
  */
 export function decryptData(password, envelope) {
   try {
-    // Debug: Log password characteristics (not the actual password!)
-    console.log('[Decrypt] Password length:', password.length);
-    console.log('[Decrypt] Has leading space:', password[0] === ' ');
-    console.log('[Decrypt] Has trailing space:', password[password.length - 1] === ' ');
-
     // Parse envelope components
     const salt = CryptoJS.enc.Hex.parse(envelope.salt);
     const nonce = CryptoJS.enc.Hex.parse(envelope.nonce);
     const ciphertext = CryptoJS.enc.Hex.parse(envelope.ciphertext);
     const providedMac = envelope.mac;
 
-    // Derive key
-    const key = deriveKey(password, salt);
+    let key;
 
-    // Verify MAC
-    const macData = CryptoJS.lib.WordArray.create()
-      .concat(salt)
-      .concat(nonce)
-      .concat(ciphertext);
+    // Use cached key if available and salt matches
+    if (hasKey() && getCachedSalt() && getCachedSalt().toString() === salt.toString()) {
+      console.log('[Decrypt] Using cached encryption key');
+      key = getCachedKey();
+    } else {
+      // Fallback to password-based key derivation
+      console.log('[Decrypt] Deriving key from password (salt mismatch or no cache)...');
+      console.log('[Decrypt] Password length:', password.length);
+      console.log('[Decrypt] Has leading space:', password[0] === ' ');
+      console.log('[Decrypt] Has trailing space:', password[password.length - 1] === ' ');
+
+      key = deriveKey(password, salt);
+    }
+
+    // Verify MAC using manual hex concatenation for consistency
+    const saltHex = salt.toString(CryptoJS.enc.Hex);
+    const nonceHex = nonce.toString(CryptoJS.enc.Hex);
+    const ciphertextHex = ciphertext.toString(CryptoJS.enc.Hex);
+    const macDataHex = saltHex + nonceHex + ciphertextHex;
+    const macData = CryptoJS.enc.Hex.parse(macDataHex);
 
     const calculatedMac = CryptoJS.HmacSHA256(macData, key);
     const calculatedMacHex = calculatedMac.toString(CryptoJS.enc.Hex);
