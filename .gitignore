@@ -64,6 +64,9 @@ data/*
 *.tmp
 *.temp
 
+# Debug files
+debug-*.js
+
 # Build and test artifacts
 dist-electron/
 playwright-report/

@@ -1,0 +1,142 @@
+name: Code Signing Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to sign'
+        required: true
+        type: string
+
+jobs:
+  sign-and-notarize:
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            platform: mac
+          - os: windows-latest
+            platform: win
+          - os: ubuntu-latest
+            platform: linux
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      # Linux dependencies
+      - name: Install Linux dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev webkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build React app
+        run: npm run build
+
+      # macOS Code Signing & Notarization
+      - name: Build and sign (macOS)
+        if: matrix.platform == 'mac'
+        run: npm run dist
+        env:
+          # Apple Developer certificates (add these to repository secrets)
+          CSC_LINK: ${{ secrets.MAC_CERTIFICATE_BASE64 }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
+          # Apple ID for notarization
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Windows Code Signing
+      - name: Build and sign (Windows)
+        if: matrix.platform == 'win'
+        run: npm run dist
+        env:
+          # Windows certificate (add these to repository secrets)
+          CSC_LINK: ${{ secrets.WIN_CERTIFICATE_BASE64 }}
+          CSC_KEY_PASSWORD: ${{ secrets.WIN_CERTIFICATE_PASSWORD }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Linux Build (no code signing needed)
+      - name: Build (Linux)
+        if: matrix.platform == 'linux'
+        run: npm run dist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Generate checksums
+      - name: Generate checksums
+        run: |
+          cd dist-electron
+          if [ "${{ matrix.platform }}" = "mac" ]; then
+            shasum -a 256 *.dmg *.zip > checksums-mac.txt || true
+          elif [ "${{ matrix.platform }}" = "win" ]; then
+            sha256sum *.exe *.msi > checksums-windows.txt || true
+          elif [ "${{ matrix.platform }}" = "linux" ]; then
+            sha256sum *.deb *.rpm *.AppImage > checksums-linux.txt || true
+          fi
+        shell: bash
+
+      # Upload signed artifacts
+      - name: Upload signed artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-${{ matrix.platform }}
+          path: |
+            dist-electron/*
+          retention-days: 90
+
+  verify-signatures:
+    needs: sign-and-notarize
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Verify build integrity
+        run: |
+          echo "📋 Build Verification Report" > verification-report.md
+          echo "==========================" >> verification-report.md
+          echo "" >> verification-report.md
+
+          for dir in signed-*; do
+            if [ -d "$dir" ]; then
+              echo "### $dir" >> verification-report.md
+              echo "" >> verification-report.md
+              ls -la "$dir/" >> verification-report.md
+              echo "" >> verification-report.md
+
+              # Check for checksums
+              if [ -f "$dir/checksums-"* ]; then
+                echo "**Checksums:**" >> verification-report.md
+                echo '```' >> verification-report.md
+                cat "$dir"/checksums-* >> verification-report.md
+                echo '```' >> verification-report.md
+                echo "" >> verification-report.md
+              fi
+            fi
+          done
+
+      - name: Upload verification report
+        uses: actions/upload-artifact@v4
+        with:
+          name: verification-report
+          path: verification-report.md

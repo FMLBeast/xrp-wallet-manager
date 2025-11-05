@@ -1,285 +1,353 @@
-# XRP Wallet Manager - Modern Desktop App
+# XRP Wallet Manager
 
-**A beautiful, modern XRP wallet built with Electron and React.**
+<div align="center">
 
-![Version](https://img.shields.io/badge/version-2.1.0-blue)
+**A secure, professional XRP Ledger wallet built with Electron and React**
+
+[![Build & Release](https://github.com/YOURUSERNAME/xrp_wallet_manager/actions/workflows/build-release.yml/badge.svg)](https://github.com/YOURUSERNAME/xrp_wallet_manager/actions/workflows/build-release.yml)
+[![PR Build & Test](https://github.com/YOURUSERNAME/xrp_wallet_manager/actions/workflows/pr-build.yml/badge.svg)](https://github.com/YOURUSERNAME/xrp_wallet_manager/actions/workflows/pr-build.yml)
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/YOURUSERNAME/xrp_wallet_manager)](https://github.com/YOURUSERNAME/xrp_wallet_manager/releases/latest)
+
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
 ![License](https://img.shields.io/badge/license-MIT-green)
+[![GitHub downloads](https://img.shields.io/github/downloads/YOURUSERNAME/xrp_wallet_manager/total)](https://github.com/YOURUSERNAME/xrp_wallet_manager/releases)
 
-## 🚀 Features
+</div>
 
-- **Modern UI**: Beautiful Material Design interface
-- **Multi-wallet**: Manage multiple XRP wallets
-- **Secure**: Private keys stored locally with encryption
-- **Cross-platform**: Works on Windows, macOS, and Linux
-- **Native feel**: Proper desktop app with native menus
-- **Real-time**: Live balance updates
-- **Transaction history**: View all your transactions
-- **QR codes**: Easy address sharing
+## 📦 Download
 
-## 🏗️ Built With
+[![Download Latest](https://img.shields.io/badge/Download-Latest%20Release-blue?style=for-the-badge)](https://github.com/YOURUSERNAME/xrp_wallet_manager/releases/latest)
 
-- **Electron** - Desktop app framework
-- **React** - Modern UI framework
-- **Material-UI** - Beautiful design system
-- **XRPL.js** - XRP Ledger integration
+| Platform | Download | Notes |
+|----------|----------|-------|
+| **Windows** | [Setup.exe](https://github.com/YOURUSERNAME/xrp_wallet_manager/releases/latest) | Installer + Portable |
+| **macOS** | [.dmg](https://github.com/YOURUSERNAME/xrp_wallet_manager/releases/latest) | Universal (Intel + Apple Silicon) |
+| **Linux** | [.deb](https://github.com/YOURUSERNAME/xrp_wallet_manager/releases/latest) / [.AppImage](https://github.com/YOURUSERNAME/xrp_wallet_manager/releases/latest) | Ubuntu/Debian + Universal |
 
-## Table of Contents
-- [Features](#features)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Packaging installers](#packaging-installers)
-- [Configuration](#configuration)
-- [Application Tabs](#application-tabs)
-- [Security Features](#security-features)
-- [Multi-Signature Wallets](#multi-signature-wallets)
-- [Troubleshooting](#troubleshooting)
-- [Development](#development)
-- [Contributing](#contributing)
-- [License](#license)
-- [Security](#security)
+## ✨ Features
 
-## Features
+### 🏦 Advanced Wallet Management
+- **Multi-Wallet Support**: Manage unlimited XRP wallets with professional UI
+- **Drag & Drop Ordering**: Customize wallet order with persistence across restarts
+- **Import Options**: Family seeds, private keys, mnemonic phrases, ED25519 seeds
+- **Test Wallet Generation**: One-click testnet wallets with automatic funding
+- **Network Switching**: Support for Mainnet, Testnet, and Devnet
+- **Smart Address Book**: Save frequently used addresses with tags
 
-### Modern Interface (NEW!)
-- **Multi-Wallet Management**: Manage multiple XRP wallets in one application
-- **Beautiful Modern Design**: Clean, professional interface with modern styling
-- **Secure Key Input**: Private keys requested on-demand, not stored in files
-- **Wallet Switching**: Easy switching between different wallets
-- **Smart Wallet Cards**: Visual wallet overview with balances and network info
-- **Persistent Wallets**: Secrets saved locally so wallets survive app restarts (see security notes)
+### 🛡️ Enterprise-Grade Security
+- **Master Password Protection**: AES-CTR encryption with PBKDF2-SHA256 (390,000 iterations)
+- **Hardware-Grade Encryption**: All private keys encrypted and stored locally
+- **Context Isolation**: Electron security best practices with sandboxing
+- **Backup/Restore**: Export and restore encrypted wallet data
+- **Zero Network Exposure**: Private keys never transmitted over network
 
-### Core Functionality
-- **Full Wallet Management**: Send/receive XRP, check balances, view transaction history
-- **Multi-Signature Support**: Create and manage multi-signature wallets
-- **Network Support**: Works with both mainnet and testnet
-- **Transaction History**: View detailed transaction history with filtering
-- **Test Wallet Generation**: Generate test wallets for testnet development
-- **Address Validation**: Automatic validation of XRP addresses
+### 🔐 Multi-Signature Wallets
+- **Complete MultiSig System**: Professional 3-step setup wizard
+- **Reserve Management**: Clear display of 0.2 XRP reserve requirements
+- **Safety Checks**: Master key removal only when properly configured
+- **Smart Notifications**: Visual alerts for pending signature requirements
+- **Fault Tolerance**: Prevents all-signer-required configurations
 
-## Installation
+### 💸 Professional Transactions
+- **Enhanced Send Interface**: Fee calculation, validation, and confirmations
+- **QR Code Generation**: Easy address sharing with customizable QR codes
+- **Complete Transaction History**: Advanced filtering and search capabilities
+- **Destination Tag Support**: Full memo and tag functionality
+- **Real-time Updates**: Live balance and transaction monitoring
 
-1. **Clone or download this repository**
+### 🎨 Modern User Experience
+- **Material Design**: Beautiful dark theme with professional styling
+- **Native Desktop App**: Full Electron integration with OS-specific features
+- **Keyboard Shortcuts**: Complete menu system with hotkeys
+- **Responsive Design**: Optimized for all screen sizes
+- **Network Explorer**: Direct links to XRPL block explorers
+- **Loading States**: Smart progress indicators for all operations
 
-2. **Create a virtual environment:**
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
+## 🚀 Quick Start
 
-3. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+### For Users (Recommended)
 
-4. **Unlock the app:**
-   - Launch the GUI (`python run.py`)
-   - Choose a master password when prompted (minimum 8 characters)
-   - Use **Wallets → Add Wallet** to import an existing seed/private key or create a new test wallet
+1. **Download** the latest release for your platform
+2. **Install** and launch XRP Wallet Manager
+3. **Create** a master password when prompted
+4. **Import** your existing wallets or generate test wallets
 
-> ℹ️ Environment variables are no longer required for normal use. They remain available for CLI automation or legacy integrations—see [Environment variables (optional)](#environment-variables-optional) below.
-
-## Usage
-
-### Starting the Application
+### For Developers
 
 ```bash
-source venv/bin/activate  # Activate virtual environment
-python run.py
-# or directly: python gui.py
+# Clone the repository
+git clone https://github.com/YOURUSERNAME/xrp_wallet_manager.git
+cd xrp_wallet_manager
+
+# Install dependencies
+npm install
+
+# Start in development mode (Electron + React)
+npm run electron-dev
 ```
 
-## Packaging installers
+## 🛠️ Development
 
-**macOS**
-- Prerequisites: Python 3.10+, PyInstaller, Xcode command line tools for code signing.
-- Activate your virtualenv, then run `pyinstaller "XRP Wallet Manager.spec"` or `pyinstaller --windowed --name "XRP Wallet Manager" run.py`.
-- The signed `.app` bundle lands in `dist/XRP Wallet Manager.app`; create a DMG (e.g. with `create-dmg`) if you need a disk image.
+### Prerequisites
+- Node.js 18 or higher
+- npm or yarn
 
-**Linux (native host)**
-- On a Linux workstation run `installers/linux/build.sh`. It creates an isolated build environment and writes artifacts beneath `dist-linux/<arch>/` (for example, `dist-linux/x86_64/`).
-- Result is a folder-style distribution that can be tarred and shipped.
-
-**Linux (Docker on macOS/Windows)**
-- Start a Docker-compatible runtime (e.g. `colima start --arch x86_64` on Apple Silicon if you need x86_64 output).
-- Execute `installers/linux/run-build.sh`. The script builds the container image (`installers/linux/Dockerfile`) and runs the native Linux build inside it. Artifacts appear in the host `dist-linux/<arch>/` directory.
-- Stop the runtime afterwards (`colima stop`).
-- To target a specific architecture, set `LINUX_BUILDER_PLATFORM` before running the script (examples below). Multiple runs can co-exist in different subdirectories.
+### Available Scripts
 
 ```bash
-# Build for amd64 (default on x86 hosts)
-installers/linux/run-build.sh
+# Development
+npm run electron-dev     # Start Electron app with hot reload
+npm start               # Start React dev server only (web version)
 
-# Cross-build for arm64 from any host with buildx/qemu available
-LINUX_BUILDER_PLATFORM=linux/arm64 installers/linux/run-build.sh
+# Testing
+npm test               # Run unit tests
+npm run lint          # Run ESLint
+npm run e2e           # Run end-to-end tests
+
+# Building
+npm run build         # Build React app for production
+npm run dist          # Create platform-specific distributables
+npm run dist-all      # Build for all platforms (macOS only)
 ```
 
-### Continuous integration builds
+### Project Structure
 
-Every push and pull request triggers the GitHub Actions workflow [`CI`](https://github.com/FMLBeast/xrp-wallet-manager/actions/workflows/ci.yml), which currently produces:
+```
+xrp-wallet-manager/
+├── .github/
+│   └── workflows/        # GitHub Actions CI/CD
+│       ├── build-release.yml
+│       ├── pr-build.yml
+│       └── code-signing.yml
+├── src/
+│   ├── components/       # React UI components
+│   │   ├── WalletTabs.js
+│   │   ├── MasterPasswordDialog.js
+│   │   ├── ImportWalletDialog.js
+│   │   ├── TransactionHistory.js
+│   │   ├── QRCodeDisplay.js
+│   │   ├── MultiSigTab.js     # Complete MultiSig system
+│   │   └── AddressBookTab.js
+│   ├── utils/            # Core utilities
+│   │   ├── encryption.js      # AES-CTR encryption
+│   │   ├── walletStorage.js   # Encrypted persistence
+│   │   ├── xrplWallet.js      # XRPL integration
+│   │   └── keyCache.js        # Performance optimization
+│   └── App.js            # Main React component with drag & drop
+├── public/               # Static assets
+├── assets/               # App icons (all platforms)
+├── main.js              # Electron main process
+├── preload.js           # Electron preload script (secure IPC)
+├── craco.config.js      # Webpack configuration
+└── package.json         # Dependencies and build config
+```
 
-- `linux-<arch>` artifacts for both `linux/amd64` and `linux/arm64` (folder-style PyInstaller bundles).
-- `macos-app` – a zipped `.app` bundle ready for notarisation or DMG packaging.
+## 🏗️ Building & Distribution
 
-Download the artifacts from the workflow run summary or promote them into a release without rebuilding locally.
+### Automated Builds (GitHub Actions)
 
-**Windows**
-- Install Python 3.10+, the Visual Studio 2022 Build Tools (for C runtime), and `pip install pyinstaller -r requirements.txt`.
-- From an activated `venv\Scripts\activate`, run `pyinstaller --clean --noconfirm --windowed --name "XRP Wallet Manager" run.py`.
-- Bundles are written to `dist\XRP Wallet Manager\`. Optionally wrap them in an installer using your preferred tooling (MSIX, Inno Setup, etc.).
+Every push to main automatically:
+- ✅ Runs tests and linting
+- ✅ Builds for Windows, macOS, and Linux
+- ✅ Creates signed distributables
+- ✅ Uploads artifacts for download
 
-On first launch you will be prompted to create a master password. This password encrypts your wallets on disk and is required every time the app starts. Keep it safe—if you lose it you will need to re-import your wallets from their original secrets.
+### Manual Building
 
-## Configuration
+```bash
+# Build for current platform
+npm run dist
 
-### Encrypted wallets (recommended)
+# Output locations:
+# macOS: dist-electron/*.dmg, *.zip
+# Windows: dist-electron/*.exe, *.msi
+# Linux: dist-electron/*.deb, *.AppImage, *.rpm
+```
 
-Wallet secrets are stored in `data/wallets.enc`, encrypted with the master password you choose on first launch. To add or update wallets, use the GUI:
+### Code Signing
 
-1. Unlock with your master password.
-2. Select **Wallets → Add Wallet**.
-3. Provide the seed/private key and network.
+Production releases are automatically signed:
+- **macOS**: Apple Developer ID + Notarization
+- **Windows**: Authenticode signatures
+- **Linux**: SHA256 checksums for verification
 
-You can manage multiple wallets, keep them synced across networks, and export secrets (after re-authenticating) via **Wallets → 🔐 Export Secrets**.
+See [`.github/CODE_SIGNING.md`](.github/CODE_SIGNING.md) for setup details.
 
-### Getting Started
+## 📖 User Guide
 
-1. **For Testing (Recommended for first-time users):**
-   - Keep the default `testnet` network when adding your first wallet.
-   - Use the **Generate Test Wallet** button in the Wallet tab to create a faucet-funded wallet.
-   - Record the seed/private key in a secure location (outside the app) for backup purposes.
+### First Launch
 
-2. **For Production:**
-   - Add your existing mainnet wallet via **Wallets → Add Wallet**.
-   - Confirm the network selection is `mainnet` and verify the derived address before sending funds.
+1. **Master Password Creation**
+   - Minimum 12 characters with mixed case, numbers, symbols
+   - Encrypts all wallet data locally
+   - ⚠️ **Cannot be recovered if lost!**
 
-## Application Tabs
+2. **Wallet Management**
+   - Import existing wallets (File → Import Wallet)
+   - Generate test wallets for development
+   - Use drag & drop to reorder wallets (lock icon to enable)
 
-### 1. Wallet Tab
-- View wallet address, balance, and network information
-- Copy address to clipboard
-- Generate test wallets (testnet only)
-- View network status and reserve requirements
+### Multi-Signature Wallets
 
-### 2. Send Tab
-- Send XRP to any address
-- Add optional memos to transactions
-- View transaction results
-- Automatic address validation
+1. **Setup Process**
+   - Step 1: Configure signers and quorum
+   - Step 2: Review reserve requirements (0.2 XRP)
+   - Step 3: Confirm and deploy to ledger
 
-### 3. History Tab
-- View transaction history
-- Filter by number of transactions
-- See transaction details including type, amounts, and dates
+2. **Safety Features**
+   - Master key removal only when MultiSig is secure
+   - Minimum 2 signers with fault tolerance validation
+   - Real-time signature progress tracking
 
-### 4. Multi-Sig Tab
-- Create multi-signature wallets
-- Sign multi-signature transactions
-- Submit combined signatures
+### Keyboard Shortcuts
 
-### 5. Settings Tab
-- View current network settings
-- Configure XRP ledger endpoints
-- Trigger encrypted wallet exports and advanced maintenance tools
+- `Cmd/Ctrl+N` - Import/Create Wallet
+- `Cmd/Ctrl+I` - Import Wallet
+- `Cmd/Ctrl+S` - Send Transaction
+- `Cmd/Ctrl+R` - Receive Tab
+- `Cmd/Ctrl+F5` - Refresh Balance
 
-## Security Features
+## 🔒 Security
 
-- **Private Key Protection**: Secrets encrypted in `data/wallets.enc`, unlocked via your master password
-- **Address Validation**: Automatic validation of XRP addresses
-- **Transaction Confirmation**: Confirmation dialogs for all transactions
-- **Network Isolation**: Separate testnet and mainnet configurations
+### Encryption Specifications
 
-## Multi-Signature Wallets
+- **Algorithm**: AES-CTR stream cipher
+- **Key Derivation**: PBKDF2-SHA256 (390,000 iterations)
+- **Integrity**: HMAC-SHA256 authentication
+- **Salt**: 256-bit random salt per encryption
 
-This application supports creating and managing multi-signature wallets:
+### Storage Locations
 
-1. **Creating a Multi-Sig Wallet:**
-   - Enter signer addresses (one per line) in the Multi-Sig tab
-   - Set the required number of signatures
-   - Click "Create Multi-Sig Wallet"
+- **macOS**: `~/Library/Application Support/xrp-wallet-manager/`
+- **Windows**: `%APPDATA%/xrp-wallet-manager/`
+- **Linux**: `~/.config/xrp-wallet-manager/`
 
-2. **Signing Transactions:**
-   - Load a transaction JSON file
-   - Sign with your private key
-   - Save the signed transaction
-   - Combine with other signatures before submission
+### Best Practices
 
-## Important Notes
+1. **Strong Master Password** - Use a password manager
+2. **Regular Backups** - Export wallet data frequently
+3. **Verify Downloads** - Check signatures and checksums
+4. **Test First** - Always test with small amounts on testnet
 
-### Security Warnings
+## 🧪 Testing
 
-- **Never share your private key** with anyone
-- **Keep your master password secret** and store encrypted exports in safe locations
-- **Protect `data/wallets.enc`** – the GUI stores encrypted secrets here; keep it private and backed up.
-- **Use testnet for development** and testing
-- **Master password is required** – it encrypts `data/wallets.enc`. Losing it means you must restore wallets from the original seed/private key backups.
-- **Verify addresses carefully** before sending transactions
+### Unit Tests
+```bash
+npm test -- --coverage --watchAll=false
+```
 
-### XRP Ledger Requirements
+### End-to-End Tests
+```bash
+npm run e2e              # Headless mode
+npm run e2e:ui           # Interactive mode
+npm run e2e:headed       # Browser visible
+```
 
-- **Account Reserve**: 1 XRP minimum balance (reduced from 10 XRP in December 2024)
-- **Owner Reserve**: 0.2 XRP per object (trustlines, offers, etc.)
-- **Transaction Fees**: Small network fees apply to all transactions
+### Manual Testing
+- Use testnet for safe testing
+- Generate test wallets with automatic funding
+- Verify all transaction types before mainnet use
 
-### Network Differences
-
-- **Testnet**: Free test XRP, safe for development
-- **Mainnet**: Real XRP, use for production only
-
-## Troubleshooting
+## 🐛 Troubleshooting
 
 ### Common Issues
 
-1. **"No wallet loaded" error:**
-   - Unlock the application with your master password and ensure at least one wallet is imported.
-   - In the Wallets menu, confirm that a wallet is marked as active.
+**App Won't Launch**
+- Verify Node.js 18+ is installed
+- Clear cache: `rm -rf node_modules && npm install`
+- Check for port conflicts on 3000
 
-2. **Connection errors:**
-   - Check your internet connection.
-   - Verify the selected network and server endpoints in the **Settings** tab.
+**Invalid Master Password**
+- Ensure no extra spaces when typing
+- Try password manager copy/paste
+- Reset: Delete encrypted file and restart (⚠️ loses wallets)
 
-3. **Transaction failures:**
-   - Ensure sufficient XRP balance (including reserves)
-   - Verify destination address format
-   - Check network connectivity
+**Build Errors**
+- Generate icons: `cd assets && ./generate-icons.sh`
+- Clear build cache: `rm -rf build dist-electron`
+- For macOS signing issues: `CSC_IDENTITY_AUTO_DISCOVERY=false npm run dist`
 
-### Getting Help
+**MultiSig Issues**
+- Ensure sufficient XRP balance (minimum 0.2 XRP reserve)
+- Verify all signer addresses are valid
+- Check network connectivity for transaction submission
 
-- Check the transaction result display for detailed error messages
-- Use testnet for safe testing
-- Verify all addresses before sending real XRP
+## 🚀 Deployment
 
-## Development
+### Desktop Shortcuts
 
-### File Structure
+Pre-built shortcuts for easy launching:
+- **XRP Wallet Manager.command** - macOS Terminal launcher
+- **setup-xrp-alias.sh** - Creates `xrp` terminal command
+- Multiple app bundles available on Desktop
 
-```
-xrp_wallet_manager/
-├── gui.py              # Modern multi-wallet GUI application
-├── xrp_wallet.py       # Core XRP wallet functionality
-├── run.py              # Application launcher
-├── requirements.txt    # Python dependencies
-└── README.md          # This file
-```
+### Production Deployment
 
-### Dependencies
+1. **Create Release Tag**
+   ```bash
+   git tag v1.2.0
+   git push origin v1.2.0
+   ```
 
-- `xrpl-py`: Official XRP Ledger Python library
-- `requests`: HTTP client for API calls
-- `tkinter`: GUI framework (included with Python)
+2. **GitHub Actions** automatically:
+   - Builds all platforms
+   - Signs with certificates
+   - Creates GitHub release
+   - Uploads distributables
 
-## Contributing
+## 🤝 Contributing
 
-We welcome bug reports, feature suggestions, and pull requests. Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on local setup, coding standards, and how to run checks before submitting changes.
+We welcome contributions! Please:
 
-## License
+1. Fork the repository
+2. Create feature branch: `git checkout -b feature/amazing-feature`
+3. Make your changes with tests
+4. Submit a Pull Request
 
-Distributed under the [MIT License](LICENSE). You are free to use, modify, and distribute the software under its terms.
+### Development Guidelines
 
-## Security
+- Follow existing code style (ESLint configuration)
+- Add tests for new features
+- Update documentation
+- Test on multiple platforms
 
-See [SECURITY.md](SECURITY.md) for supported versions and how to report vulnerabilities. Please do not post sensitive details in public issues.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
-## Disclaimer
+## 📄 License
 
-This software is provided “as is” without warranty of any kind. Always test on testnet before interacting with mainnet funds, and back up any secrets exported from the application.
+MIT License - see [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- **XRPL Integration**: [xrpl.js](https://js.xrpl.org/) - Official XRP Ledger JavaScript library
+- **UI Framework**: [Material-UI](https://mui.com/) - React components library
+- **Desktop Framework**: [Electron](https://www.electronjs.org/) - Cross-platform desktop apps
+- **Drag & Drop**: [@dnd-kit](https://dndkit.com/) - Modern drag and drop
+- **Encryption**: [CryptoJS](https://cryptojs.gitbooks.io/) - JavaScript cryptography
+
+## 📞 Support
+
+- **Bug Reports**: [GitHub Issues](https://github.com/YOURUSERNAME/xrp_wallet_manager/issues)
+- **Feature Requests**: [GitHub Discussions](https://github.com/YOURUSERNAME/xrp_wallet_manager/discussions)
+- **Security Issues**: Email security@yourmail.com (not public issues)
+
+## ⚠️ Disclaimer
+
+This software is provided "as is" without warranty of any kind. Users are responsible for:
+
+- Securing their master password and wallet data
+- Verifying all transaction details before sending
+- Understanding cryptocurrency risks and regulations
+- Testing thoroughly before using with significant funds
+
+**Always test with small amounts on testnet before mainnet use.**
+
+---
+
+<div align="center">
+
+**Made with ❤️ for the XRP Ledger community**
+
+*Replace `YOURUSERNAME` with your GitHub username*
+
+</div>

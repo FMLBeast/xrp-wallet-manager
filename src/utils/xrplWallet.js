@@ -283,16 +283,35 @@ export async function signAndSubmit(client, wallet, transaction) {
 
 /**
  * Format amount for display (drops to XRP)
+ * Handles both drops format (whole numbers) and XRP format (decimals)
  */
-export function formatAmount(drops) {
-  if (typeof drops === 'string' && drops !== '0') {
-    return dropsToXrp(drops);
+export function formatAmount(value) {
+  if (!value || value === '0') {
+    return value;
   }
-  return drops;
+
+  if (typeof value === 'string') {
+    // If the value contains a decimal point, it's already in XRP format
+    if (value.includes('.')) {
+      return value;
+    }
+
+    // If it's a whole number string, treat it as drops and convert to XRP
+    if (/^\d+$/.test(value)) {
+      try {
+        return dropsToXrp(value);
+      } catch (error) {
+        console.warn('Failed to convert drops to XRP:', value, error);
+        return value;
+      }
+    }
+  }
+
+  return value;
 }
 
 /**
- * Validate XRP address
+ * Validate XRP address format
  */
 export function isValidAddress(address) {
   try {
@@ -301,6 +320,36 @@ export function isValidAddress(address) {
   } catch (error) {
     return false;
   }
+}
+
+/**
+ * Validate XRP address with network compatibility check
+ * Returns { valid: boolean, error?: string }
+ */
+export function validateAddressForNetwork(address, walletNetwork) {
+  if (!address) {
+    return { valid: false, error: 'Address is required' };
+  }
+
+  if (!isValidAddress(address)) {
+    return { valid: false, error: 'Invalid XRP address format' };
+  }
+
+  // Note: XRP addresses look the same on mainnet and testnet
+  // This is more of a safety check to remind users about network compatibility
+  if (walletNetwork === 'testnet') {
+    return {
+      valid: true,
+      warning: 'Make sure this address is valid on testnet. Testnet XRP has no real value.'
+    };
+  } else if (walletNetwork === 'mainnet') {
+    return {
+      valid: true,
+      warning: 'Make sure this address is valid on mainnet. This will send real XRP with value.'
+    };
+  }
+
+  return { valid: true };
 }
 
 /**
@@ -398,4 +447,35 @@ export function getAccountExplorerUrl(network, address) {
 
   const baseUrl = explorers[network] || explorers.testnet;
   return `${baseUrl}/accounts/${address}`;
+}
+
+/**
+ * Calculate XRP reserves and available balance with current XRPL reserve requirements
+ */
+export function calculateReserves(balance, ownerCount = 0, accountInfo = null) {
+  // Current XRPL reserve requirements (as of 2024)
+  const BASE_RESERVE = 1; // Base reserve is currently 1 XRP
+  const OWNER_RESERVE = 0.2; // Each owned object requires 0.2 XRP reserve
+
+  // If we have account info, use the actual owner count
+  let actualOwnerCount = ownerCount;
+  if (accountInfo && accountInfo.OwnerCount !== undefined) {
+    actualOwnerCount = accountInfo.OwnerCount;
+  }
+
+  const totalReserve = BASE_RESERVE + (actualOwnerCount * OWNER_RESERVE);
+  const balanceNum = parseFloat(balance || 0);
+  const availableBalance = Math.max(0, balanceNum - totalReserve);
+
+  return {
+    baseReserve: BASE_RESERVE,
+    ownerReserve: actualOwnerCount * OWNER_RESERVE,
+    totalReserve,
+    ownerCount: actualOwnerCount,
+    availableBalance: availableBalance.toFixed(6),
+    reservedBalance: totalReserve.toFixed(6),
+    totalBalance: balanceNum.toFixed(6),
+    baseReserveFormatted: BASE_RESERVE.toFixed(1),
+    ownerReserveFormatted: (actualOwnerCount * OWNER_RESERVE).toFixed(1)
+  };
 }

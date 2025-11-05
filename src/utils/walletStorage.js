@@ -4,6 +4,7 @@
  */
 
 import { encryptData, decryptData, decryptPythonWalletData } from './encryption';
+import { cacheKey } from './keyCache.js';
 
 const STORAGE_VERSION = 1;
 
@@ -31,7 +32,8 @@ function createEmptyStorage() {
   return {
     wallets: {},
     active_wallet: null,
-    address_book: []
+    address_book: [],
+    wallet_order: []
   };
 }
 
@@ -42,6 +44,10 @@ function createEmptyStorage() {
 export async function loadWalletStorage(masterPassword) {
   if (!window.electronAPI) {
     throw new Error('Electron API not available');
+  }
+
+  if (!masterPassword) {
+    throw new Error('Master password is required');
   }
 
   try {
@@ -60,6 +66,13 @@ export async function loadWalletStorage(masterPassword) {
     if (envelope.version === STORAGE_VERSION) {
       // New Electron format
       decryptedJson = decryptData(masterPassword, envelope);
+
+      // Cache the encryption key for performance after successful decryption
+      if (envelope.salt) {
+        const CryptoJS = require('crypto-js');
+        const salt = CryptoJS.enc.Hex.parse(envelope.salt);
+        cacheKey(masterPassword, salt);
+      }
     } else {
       // Legacy Python format or old version - try Python compatibility
       console.log('Detected legacy wallet format, attempting Python compatibility mode');
@@ -75,7 +88,8 @@ export async function loadWalletStorage(masterPassword) {
     return {
       wallets: walletData.wallets || {},
       active_wallet: walletData.active_wallet || null,
-      address_book: walletData.address_book || []
+      address_book: walletData.address_book || [],
+      wallet_order: walletData.wallet_order || []
     };
   } catch (error) {
     console.error('loadWalletStorage error details:', error);
@@ -126,13 +140,43 @@ export async function addWallet(masterPassword, walletInfo) {
     throw new Error('Master password is required for adding wallets');
   }
 
-  console.log('addWallet: Attempting to load wallet storage...');
+  console.log('addWallet: Attempting to add wallet for:', walletInfo.name);
+  console.log('addWallet: Master password provided:', !!masterPassword);
+
   try {
-    const storage = await loadWalletStorage(masterPassword);
-    console.log('addWallet: Successfully loaded wallet storage');
+    // First, check if storage file exists
+    const exists = await window.electronAPI.invoke('wallet-storage-exists');
+    console.log('addWallet: Storage file exists:', exists);
+
+    let storage;
+    if (!exists) {
+      // No storage file - this is the first wallet
+      console.log('addWallet: No storage file found, creating empty storage for first wallet');
+      storage = {
+        wallets: {},
+        active_wallet: null,
+        address_book: []
+      };
+    } else {
+      // Storage file exists - load it
+      console.log('addWallet: Loading existing wallet storage...');
+      try {
+        storage = await loadWalletStorage(masterPassword);
+        console.log('addWallet: Successfully loaded existing wallet storage');
+      } catch (error) {
+        console.error('addWallet: Failed to load storage with provided password:', error.message);
+        // If we can't load with the provided password, there might be a consistency issue
+        // Log the password characteristics for debugging
+        console.log('addWallet: Password length:', masterPassword ? masterPassword.length : 'null');
+        console.log('addWallet: Password has leading/trailing spaces:', masterPassword !== masterPassword?.trim());
+        throw new Error(`Failed to load existing wallet storage: ${error.message}`);
+      }
+    }
+
     return await _addWalletToStorage(masterPassword, walletInfo, storage);
   } catch (error) {
-    console.error('addWallet: Failed to load wallet storage:', error.message);
+    console.error('addWallet: Error occurred:', error.message);
+    console.error('addWallet: Full error details:', error);
     throw error;
   }
 }
@@ -176,6 +220,72 @@ export async function removeWallet(masterPassword, walletName) {
   if (storage.active_wallet === walletName) {
     const remainingWallets = Object.keys(storage.wallets);
     storage.active_wallet = remainingWallets.length > 0 ? remainingWallets[0] : null;
+  }
+
+  await saveWalletStorage(masterPassword, storage);
+  return storage;
+}
+
+/**
+ * Rename a wallet
+ */
+export async function renameWallet(masterPassword, oldName, newName) {
+  const storage = await loadWalletStorage(masterPassword);
+
+  // Validation
+  if (!oldName || !newName) {
+    throw new Error('Both old and new wallet names are required');
+  }
+
+  if (oldName === newName) {
+    // No change needed, return current storage without error
+    return storage;
+  }
+
+  if (!storage.wallets[oldName]) {
+    throw new Error(`Wallet '${oldName}' not found`);
+  }
+
+  if (storage.wallets[newName]) {
+    throw new Error(`Wallet name '${newName}' already exists`);
+  }
+
+  // Validate new name format
+  if (newName.trim() !== newName || newName.length < 1) {
+    throw new Error('Wallet name cannot be empty or contain only whitespace');
+  }
+
+  if (newName.length > 50) {
+    throw new Error('Wallet name cannot be longer than 50 characters');
+  }
+
+  // Create new wallet entry with the new name
+  const walletData = { ...storage.wallets[oldName] };
+  walletData.name = newName.trim();
+
+  // Add updated timestamp
+  walletData.updated_at = new Date().toISOString();
+
+  // Update storage
+  storage.wallets[newName] = walletData;
+  delete storage.wallets[oldName];
+
+  // Update active wallet if it was the renamed wallet
+  if (storage.active_wallet === oldName) {
+    storage.active_wallet = newName;
+  }
+
+  // Update address book entries that reference this wallet
+  if (storage.address_book) {
+    storage.address_book = storage.address_book.map(entry => {
+      if (entry.label === `${oldName} (${walletData.network})`) {
+        return {
+          ...entry,
+          label: `${newName} (${walletData.network})`
+        };
+      }
+      return entry;
+    });
   }
 
   await saveWalletStorage(masterPassword, storage);
@@ -384,6 +494,18 @@ export async function resetWalletStorage() {
   } catch (error) {
     throw new Error(`Failed to reset wallet storage: ${error.message}`);
   }
+}
+
+/**
+ * Update wallet order
+ */
+export async function updateWalletOrder(masterPassword, walletOrder) {
+  const storage = await loadWalletStorage(masterPassword);
+
+  storage.wallet_order = walletOrder || [];
+
+  await saveWalletStorage(masterPassword, storage);
+  return storage;
 }
 
 /**

@@ -23,8 +23,8 @@ import {
   Grid,
   Divider
 } from '@mui/material';
-import { Add, AccountBalanceWallet, Security, NetworkCheck } from '@mui/icons-material';
-import { createWalletFromSecret, generateTestWallet, formatAmount } from '../utils/xrplWallet';
+import { Add, AccountBalanceWallet, Security, NetworkCheck, Science } from '@mui/icons-material';
+import { createWalletFromSecret, generateTestWallet } from '../utils/xrplWallet';
 
 const steps = ['Enter Secret', 'Configure Wallet', 'Confirm Import'];
 
@@ -265,7 +265,7 @@ export default function ImportWalletDialog({
                 </MenuItem>
                 <MenuItem value="testnet">
                   <Box display="flex" alignItems="center" gap={1}>
-                    <NetworkCheck color="secondary" />
+                    <Science color="secondary" />
                     <Box>
                       <Typography>Testnet</Typography>
                       <Typography variant="caption" color="text.secondary">

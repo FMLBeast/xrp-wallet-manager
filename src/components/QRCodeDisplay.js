@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import QRCode from 'qrcode';
 import {
   Box,
   Card,
   CardContent,
   Typography,
   TextField,
-  Button,
   IconButton,
   Grid,
   Alert,
@@ -28,11 +28,7 @@ export default function QRCodeDisplay({ wallet, onShowSnackbar }) {
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [paymentUrl, setPaymentUrl] = useState('');
 
-  useEffect(() => {
-    generateQRCode();
-  }, [wallet, amount, destinationTag, memo]);
-
-  const generateQRCode = () => {
+  const generateQRCode = useCallback(async () => {
     if (!wallet) return;
 
     // Create XRP payment URL
@@ -52,10 +48,29 @@ export default function QRCodeDisplay({ wallet, onShowSnackbar }) {
 
     setPaymentUrl(url);
 
-    // Generate QR code using external service
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&format=png&data=${encodeURIComponent(url)}`;
-    setQrCodeUrl(qrUrl);
-  };
+    try {
+      // Generate QR code locally as data URL
+      const qrDataUrl = await QRCode.toDataURL(url, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        },
+        errorCorrectionLevel: 'M'
+      });
+      setQrCodeUrl(qrDataUrl);
+    } catch (error) {
+      console.error('Failed to generate QR code:', error);
+      // Fallback to external service if local generation fails
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&format=png&data=${encodeURIComponent(url)}`;
+      setQrCodeUrl(qrUrl);
+    }
+  }, [wallet, amount, destinationTag, memo]);
+
+  useEffect(() => {
+    generateQRCode();
+  }, [generateQRCode]);
 
   const handleCopyAddress = async () => {
     try {
@@ -76,13 +91,27 @@ export default function QRCodeDisplay({ wallet, onShowSnackbar }) {
   };
 
   const handleDownloadQR = () => {
-    const link = document.createElement('a');
-    link.href = qrCodeUrl;
-    link.download = `xrp-qr-${wallet.name}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    onShowSnackbar('QR code downloaded', 'success');
+    if (!qrCodeUrl) {
+      onShowSnackbar('QR code not ready. Please wait...', 'warning');
+      return;
+    }
+
+    try {
+      const link = document.createElement('a');
+      link.href = qrCodeUrl;
+      link.download = `xrp-qr-${wallet.name.replace(/[^a-zA-Z0-9]/g, '-')}.png`;
+
+      // Ensure the link doesn't navigate away from the app
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      onShowSnackbar('QR code downloaded successfully', 'success');
+    } catch (error) {
+      console.error('Failed to download QR code:', error);
+      onShowSnackbar('Failed to download QR code', 'error');
+    }
   };
 
   const handleShare = async () => {

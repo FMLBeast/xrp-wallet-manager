@@ -11,10 +11,7 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
-  TableHead,
   TableRow,
-  Paper,
   IconButton,
   Chip,
   FormControl,
@@ -22,7 +19,6 @@ import {
   Select,
   MenuItem,
   InputAdornment,
-  Divider,
   List,
   ListItem,
   ListItemText,
@@ -34,14 +30,14 @@ import {
   Launch,
   Refresh,
   Send,
-  ExpandMore,
   AccountBalanceWallet,
   NetworkCheck,
+  Science,
   Security,
-  Settings,
   Download,
   Visibility,
-  VisibilityOff
+  VisibilityOff,
+  QrCode2
 } from '@mui/icons-material';
 
 // Import our new components
@@ -57,14 +53,15 @@ import {
   createClient,
   preparePayment,
   signAndSubmit,
-  formatAmount,
   createWalletFromSecret,
   validateAmount,
-  isValidAddress,
+  validateAddressForNetwork,
   isValidDestinationTag,
-  getNetworkConfig,
-  getAccountExplorerUrl
+  getAccountExplorerUrl,
+  calculateReserves
 } from '../utils/xrplWallet';
+
+import QrScanner from 'qr-scanner';
 
 import {
   addAddressBookEntry,
@@ -80,6 +77,7 @@ const WalletTabs = ({
   balance,
   onRefreshBalance,
   onShowSnackbar,
+  onTabChange,
   addressBook = [],
   masterPassword,
   onWalletUpdate,
@@ -94,6 +92,12 @@ const WalletTabs = ({
     destinationTag: '',
     memo: ''
   });
+
+  // Address book selection state
+  const [selectedAddressBookItem, setSelectedAddressBookItem] = useState('');
+
+  // QR code scanning state
+  const [qrScanLoading, setQrScanLoading] = useState(false);
   const [sendLoading, setSendLoading] = useState(false);
   const [sendErrors, setSendErrors] = useState({});
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -130,16 +134,104 @@ const WalletTabs = ({
     if (sendErrors[field]) {
       setSendErrors(prev => ({ ...prev, [field]: '' }));
     }
+
+    // Clear address book selection when destination is manually changed
+    if (field === 'destination') {
+      // Check if the new value matches any address in the address book
+      const matchingContact = addressBook.find(contact => contact.address === value);
+      if (matchingContact) {
+        setSelectedAddressBookItem(matchingContact.label);
+      } else {
+        setSelectedAddressBookItem('');
+      }
+    }
+  };
+
+  const handleQRCodeScan = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    setQrScanLoading(true);
+    try {
+      // Scan QR code from uploaded image
+      const result = await QrScanner.scanImage(file);
+
+      // Parse the QR code result (expecting XRP payment URL)
+      const parsedData = parseXRPPaymentURL(result);
+
+      if (parsedData) {
+        // Auto-fill the form with the parsed data
+        if (parsedData.address) {
+          handleSendFormChange('destination', parsedData.address);
+        }
+        if (parsedData.amount) {
+          handleSendFormChange('amount', parsedData.amount);
+        }
+        if (parsedData.destinationTag) {
+          handleSendFormChange('destinationTag', parsedData.destinationTag);
+        }
+        if (parsedData.memo) {
+          handleSendFormChange('memo', parsedData.memo);
+        }
+
+        onShowSnackbar('QR code scanned successfully! Form auto-filled.', 'success');
+      } else {
+        onShowSnackbar('QR code does not contain valid XRP payment information', 'warning');
+      }
+    } catch (error) {
+      console.error('QR scan error:', error);
+      onShowSnackbar('Failed to scan QR code. Please try a different image.', 'error');
+    } finally {
+      setQrScanLoading(false);
+      // Reset file input
+      event.target.value = '';
+    }
+  };
+
+  const parseXRPPaymentURL = (url) => {
+    try {
+      // Handle different XRP URL formats
+      let parsedUrl;
+
+      if (url.startsWith('https://xrpl.org/')) {
+        parsedUrl = new URL(url);
+      } else if (url.startsWith('xrp:')) {
+        // Convert xrp: scheme to https for parsing
+        parsedUrl = new URL(url.replace('xrp:', 'https://xrpl.org/'));
+      } else if (url.match(/^r[a-km-zA-HJ-NP-Z1-9]{25,34}$/)) {
+        // Direct address
+        return { address: url };
+      } else {
+        return null;
+      }
+
+      const params = parsedUrl.searchParams;
+      return {
+        address: params.get('to') || parsedUrl.pathname.replace('/', ''),
+        amount: params.get('amount'),
+        destinationTag: params.get('dt') || params.get('destinationTag'),
+        memo: params.get('memo')
+      };
+    } catch (error) {
+      console.error('URL parsing error:', error);
+      return null;
+    }
   };
 
   const validateSendForm = () => {
     const errors = {};
 
-    // Validate destination
+    // Validate destination with network compatibility
     if (!sendForm.destination) {
       errors.destination = 'Destination address is required';
-    } else if (!isValidAddress(sendForm.destination)) {
-      errors.destination = 'Invalid destination address format';
+    } else {
+      const addressValidation = validateAddressForNetwork(sendForm.destination, wallet?.network || 'mainnet');
+      if (!addressValidation.valid) {
+        errors.destination = addressValidation.error;
+      } else if (addressValidation.warning) {
+        // Store warning to display separately if needed
+        console.log('[Network Warning]', addressValidation.warning);
+      }
     }
 
     // Validate amount
@@ -436,7 +528,7 @@ const WalletTabs = ({
                         </TableCell>
                       </TableRow>
                       <TableRow>
-                        <TableCell><strong>Balance</strong></TableCell>
+                        <TableCell><strong>Total Balance</strong></TableCell>
                         <TableCell>
                           <Box display="flex" alignItems="center" gap={1}>
                             <Typography variant="h6" color="primary">
@@ -448,6 +540,43 @@ const WalletTabs = ({
                           </Box>
                         </TableCell>
                       </TableRow>
+                      {(() => {
+                        const reserves = calculateReserves(balance);
+                        return [
+                          <TableRow key="available">
+                            <TableCell><strong>Available Balance</strong></TableCell>
+                            <TableCell>
+                              <Typography variant="body1" color="success.main" fontWeight="medium">
+                                {reserves.availableBalance} XRP
+                              </Typography>
+                            </TableCell>
+                          </TableRow>,
+                          <TableRow key="reserved">
+                            <TableCell><strong>Reserved Balance</strong></TableCell>
+                            <TableCell>
+                              <Typography variant="body2" color="text.secondary">
+                                {reserves.reservedBalance} XRP
+                              </Typography>
+                            </TableCell>
+                          </TableRow>,
+                          <TableRow key="base-reserve">
+                            <TableCell style={{ paddingLeft: '24px' }}>• Base Reserve</TableCell>
+                            <TableCell>
+                              <Typography variant="body2" color="text.secondary">
+                                {reserves.baseReserveFormatted} XRP
+                              </Typography>
+                            </TableCell>
+                          </TableRow>,
+                          <TableRow key="owner-reserve">
+                            <TableCell style={{ paddingLeft: '24px' }}>• Owner Reserve</TableCell>
+                            <TableCell>
+                              <Typography variant="body2" color="text.secondary">
+                                {reserves.ownerReserveFormatted} XRP ({reserves.ownerCount} objects)
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                        ];
+                      })()}
                       <TableRow>
                         <TableCell><strong>Network</strong></TableCell>
                         <TableCell>
@@ -502,7 +631,7 @@ const WalletTabs = ({
                   </Typography>
 
                   <List>
-                    <ListItem button onClick={() => {/* Switch to send tab */}}>
+                    <ListItem button onClick={() => onTabChange && onTabChange(1)}>
                       <ListItemIcon>
                         <Send />
                       </ListItemIcon>
@@ -511,7 +640,7 @@ const WalletTabs = ({
                         secondary="Send XRP to another address"
                       />
                     </ListItem>
-                    <ListItem button onClick={() => {/* Switch to receive tab */}}>
+                    <ListItem button onClick={() => onTabChange && onTabChange(2)}>
                       <ListItemIcon>
                         <AccountBalanceWallet />
                       </ListItemIcon>
@@ -548,13 +677,41 @@ const WalletTabs = ({
                       helperText={sendErrors.destination}
                       margin="normal"
                     />
+
+                    {/* QR Code Import Button */}
+                    <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <input
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        id="qr-upload-button"
+                        type="file"
+                        onChange={handleQRCodeScan}
+                      />
+                      <label htmlFor="qr-upload-button">
+                        <Button
+                          variant="outlined"
+                          component="span"
+                          startIcon={qrScanLoading ? <CircularProgress size={16} /> : <QrCode2 />}
+                          disabled={qrScanLoading}
+                          size="small"
+                        >
+                          {qrScanLoading ? 'Scanning...' : 'Scan QR Code'}
+                        </Button>
+                      </label>
+                      <Typography variant="caption" color="text.secondary">
+                        Upload QR code image to auto-fill form
+                      </Typography>
+                    </Box>
                     {addressBook.length > 0 && (
                       <FormControl fullWidth margin="normal">
                         <InputLabel>Quick Select from Address Book</InputLabel>
                         <Select
-                          value=""
+                          value={selectedAddressBookItem}
                           onChange={(e) => {
-                            const contact = addressBook.find(c => c.label === e.target.value);
+                            const selectedLabel = e.target.value;
+                            setSelectedAddressBookItem(selectedLabel);
+
+                            const contact = addressBook.find(c => c.label === selectedLabel);
                             if (contact) {
                               handleSendFormChange('destination', contact.address);
                               if (contact.destination_tag) {
@@ -699,6 +856,7 @@ const WalletTabs = ({
             wallet={wallet}
             masterPassword={masterPassword}
             onShowSnackbar={onShowSnackbar}
+            balance={balance}
           />
         );
 
@@ -752,7 +910,7 @@ const WalletTabs = ({
                       </MenuItem>
                       <MenuItem value="testnet">
                         <Box display="flex" alignItems="center" gap={1}>
-                          <NetworkCheck color="secondary" />
+                          <Science color="secondary" />
                           <Box>
                             <Typography>Testnet</Typography>
                             <Typography variant="caption" color="text.secondary">
@@ -887,6 +1045,7 @@ const WalletTabs = ({
         onConfirm={handleConfirmSend}
         transaction={preparedTransaction}
         wallet={wallet}
+        balance={balance}
       />
 
       <PasswordPromptDialog
