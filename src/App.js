@@ -53,11 +53,9 @@ import {
   NetworkCheck,
   Science,
   People,
-  SortByAlpha,
   Edit,
   Check,
   Close,
-  DragIndicator,
   Lock,
   LockOpen
 } from '@mui/icons-material';
@@ -146,8 +144,6 @@ function App() {
   const [balances, setBalances] = useState({});
 
   // Wallet management state
-  const [sortMethod, setSortMethod] = useState('name'); // 'name', 'network', 'created', 'custom'
-  const [sortDirection, setSortDirection] = useState('asc'); // 'asc', 'desc'
   const [customWalletOrder, setCustomWalletOrder] = useState([]); // Array of wallet names in custom order
   const [renamingWallet, setRenamingWallet] = useState(null);
   const [editMode, setEditMode] = useState(false); // Controls visibility of edit icons
@@ -421,22 +417,12 @@ function App() {
     }
   };
 
-  const handleSortChange = (method) => {
-    if (sortMethod === method) {
-      // If same method, toggle direction
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      // If different method, set new method with ascending order
-      setSortMethod(method);
-      setSortDirection('asc');
-    }
-  };
 
-  // Memoize walletList with sorting to prevent unnecessary re-renders of the sidebar
+  // Memoize walletList for custom ordering
   const walletList = useMemo(() => {
     const walletArray = Object.values(wallets);
 
-    if (sortMethod === 'custom' && customWalletOrder.length > 0) {
+    if (customWalletOrder.length > 0) {
       // Use custom order if available
       const orderedWallets = [];
       const remainingWallets = [...walletArray];
@@ -456,30 +442,9 @@ function App() {
       return orderedWallets;
     }
 
-    // Standard sorting for other methods
-    return walletArray.sort((a, b) => {
-      let compareValue = 0;
-
-      switch (sortMethod) {
-        case 'name':
-          compareValue = a.name.localeCompare(b.name);
-          break;
-        case 'network':
-          compareValue = a.network.localeCompare(b.network);
-          break;
-        case 'created':
-          // Assume newer wallets don't have created_at, put them first
-          const aTime = a.created_at ? new Date(a.created_at).getTime() : Date.now();
-          const bTime = b.created_at ? new Date(b.created_at).getTime() : Date.now();
-          compareValue = aTime - bTime;
-          break;
-        default:
-          compareValue = a.name.localeCompare(b.name);
-      }
-
-      return sortDirection === 'asc' ? compareValue : -compareValue;
-    });
-  }, [wallets, sortMethod, sortDirection, customWalletOrder]);
+    // Default order (order of addition)
+    return walletArray;
+  }, [wallets, customWalletOrder]);
 
   const handleDragEnd = useCallback((event) => {
     const { active, over } = event;
@@ -490,13 +455,8 @@ function App() {
 
       const newOrder = arrayMove(walletList, oldIndex, newIndex).map(wallet => wallet.name);
       setCustomWalletOrder(newOrder);
-
-      // Switch to custom order mode if not already
-      if (sortMethod !== 'custom') {
-        setSortMethod('custom');
-      }
     }
-  }, [walletList, sortMethod]);
+  }, [walletList]);
 
   const refreshWalletBalance = async (walletName, walletData, masterPasswordOverride = null) => {
     setOperationLoading('balanceRefresh', walletName, true);
@@ -690,43 +650,6 @@ function App() {
             )}
           </Box>
 
-          {/* Wallet Sorting Controls */}
-          {walletList.length > 1 && (
-            <Box sx={{ px: 2, py: 1, borderBottom: '1px solid rgba(255, 255, 255, 0.12)' }}>
-              <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-                Sort by:
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button
-                  size="small"
-                  variant={sortMethod === 'name' ? 'contained' : 'outlined'}
-                  startIcon={<SortByAlpha />}
-                  onClick={() => handleSortChange('name')}
-                  sx={{ minWidth: 'auto', fontSize: '0.7rem' }}
-                >
-                  Name {sortMethod === 'name' && (sortDirection === 'asc' ? '↑' : '↓')}
-                </Button>
-                <Button
-                  size="small"
-                  variant={sortMethod === 'network' ? 'contained' : 'outlined'}
-                  startIcon={<NetworkCheck />}
-                  onClick={() => handleSortChange('network')}
-                  sx={{ minWidth: 'auto', fontSize: '0.7rem' }}
-                >
-                  Network {sortMethod === 'network' && (sortDirection === 'asc' ? '↑' : '↓')}
-                </Button>
-                <Button
-                  size="small"
-                  variant={sortMethod === 'custom' ? 'contained' : 'outlined'}
-                  startIcon={<DragIndicator />}
-                  onClick={() => handleSortChange('custom')}
-                  sx={{ minWidth: 'auto', fontSize: '0.7rem' }}
-                >
-                  Custom Order
-                </Button>
-              </Box>
-            </Box>
-          )}
 
           {/* Wallet List */}
           <DndContext
@@ -747,7 +670,7 @@ function App() {
                     <SortableWalletItem
                       key={wallet.name}
                       wallet={wallet}
-                      isDragDisabled={sortMethod !== 'custom' || renamingWallet === wallet.name || !editMode}
+                      isDragDisabled={!editMode || renamingWallet === wallet.name}
                     >
                       <ListItem disablePadding sx={{ mb: 1 }}>
                   {renamingWallet === wallet.name ? (
