@@ -30,8 +30,7 @@ import {
   ArrowUpward,
   ArrowDownward,
   Info,
-  Search,
-  FilterList
+  Search
 } from '@mui/icons-material';
 import { formatAmount, getExplorerUrl, createClient } from '../utils/xrplWallet';
 
@@ -51,7 +50,7 @@ export default function TransactionHistory({
     if (wallet) {
       loadTransactionHistory();
     }
-  }, [wallet, limit]);
+  }, [wallet, limit, loadTransactionHistory]);
 
   const loadTransactionHistory = async () => {
     if (!wallet) return;

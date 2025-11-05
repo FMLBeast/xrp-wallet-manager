@@ -17,6 +17,56 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import {
+  ThemeProvider,
+  createTheme,
+  CssBaseline,
+  Box,
+  Drawer,
+  AppBar,
+  Toolbar,
+  Typography,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Button,
+  IconButton,
+  Chip,
+  TextField,
+  Alert,
+  Snackbar,
+  Tabs,
+  Tab,
+  CircularProgress
+} from '@mui/material';
+import {
+  AccountBalanceWallet,
+  Add,
+  Refresh,
+  Send,
+  CallReceived,
+  History,
+  Settings,
+  Security,
+  NetworkCheck,
+  Science,
+  People,
+  SortByAlpha,
+  Edit,
+  Check,
+  Close,
+  DragIndicator,
+  Lock,
+  LockOpen
+} from '@mui/icons-material';
+import MasterPasswordDialog from './components/MasterPasswordDialog';
+import ImportWalletDialog from './components/ImportWalletDialog';
+import WalletTabs from './components/WalletTabs';
+import { walletsFileExists, loadWalletStorage, addWallet, setActiveWallet, resetWalletStorage, addAddressBookEntry, renameWallet } from './utils/walletStorage';
+import { calculateReserves } from './utils/xrplWallet';
+import { clearKey } from './utils/keyCache.js';
 
 // Sortable Wallet Item Component
 function SortableWalletItem({ wallet, children, isDragDisabled = false }) {
@@ -41,68 +91,6 @@ function SortableWalletItem({ wallet, children, isDragDisabled = false }) {
     </div>
   );
 }
-import {
-  ThemeProvider,
-  createTheme,
-  CssBaseline,
-  Box,
-  Drawer,
-  AppBar,
-  Toolbar,
-  Typography,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Button,
-  Card,
-  CardContent,
-  IconButton,
-  Chip,
-  Menu,
-  MenuItem,
-  Select,
-  FormControl,
-  InputLabel,
-  TextField,
-  Alert,
-  Snackbar,
-  Tabs,
-  Tab,
-  CircularProgress,
-  Backdrop
-} from '@mui/material';
-import {
-  AccountBalanceWallet,
-  Add,
-  Refresh,
-  Send,
-  CallReceived,
-  History,
-  Settings,
-  Security,
-  NetworkCheck,
-  Science,
-  Download,
-  Upload,
-  People,
-  Sort,
-  SortByAlpha,
-  Edit,
-  Check,
-  Close,
-  MoreVert,
-  DragIndicator
-} from '@mui/icons-material';
-
-// Import our new components and utilities
-import MasterPasswordDialog from './components/MasterPasswordDialog';
-import ImportWalletDialog from './components/ImportWalletDialog';
-import WalletTabs from './components/WalletTabs';
-import { walletsFileExists, loadWalletStorage, addWallet, setActiveWallet, resetWalletStorage, addAddressBookEntry, renameWallet } from './utils/walletStorage';
-import { generateTestWallet, calculateReserves } from './utils/xrplWallet';
-import { cacheKey, clearKey } from './utils/keyCache.js';
 
 const theme = createTheme({
   palette: {
@@ -144,7 +132,6 @@ function App() {
   const [importDialogLoading, setImportDialogLoading] = useState(false);
   const [selectedTab, setSelectedTab] = useState(0);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
-  const [loading, setLoading] = useState(false);
 
   // Loading states for specific operations
   const [loadingStates, setLoadingStates] = useState({
@@ -157,13 +144,13 @@ function App() {
 
   // Network and balance state
   const [balances, setBalances] = useState({});
-  const [networkStatus, setNetworkStatus] = useState({});
 
   // Wallet management state
   const [sortMethod, setSortMethod] = useState('name'); // 'name', 'network', 'created', 'custom'
   const [sortDirection, setSortDirection] = useState('asc'); // 'asc', 'desc'
   const [customWalletOrder, setCustomWalletOrder] = useState([]); // Array of wallet names in custom order
   const [renamingWallet, setRenamingWallet] = useState(null);
+  const [editMode, setEditMode] = useState(false); // Controls visibility of edit icons
 
   // Drag and drop sensors
   const sensors = useSensors(
@@ -173,19 +160,7 @@ function App() {
     })
   );
 
-  // Initialize app on mount
-  useEffect(() => {
-    initializeApp();
-    setupElectronMenuHandlers();
-
-    return () => {
-      cleanupElectronMenuHandlers();
-      // Clear cached encryption key when app closes
-      clearKey();
-    };
-  }, []);
-
-  const initializeApp = async () => {
+  const initializeApp = useCallback(async () => {
     try {
       const fileExists = await walletsFileExists();
 
@@ -201,9 +176,16 @@ function App() {
     } catch (error) {
       showSnackbar('Failed to initialize application: ' + error.message, 'error');
     }
+  }, []);
+
+  const handleRefreshBalance = () => {
+    if (activeWalletName && wallets[activeWalletName]) {
+      refreshWalletBalance(activeWalletName, wallets[activeWalletName]);
+      showSnackbar('Refreshing balance...', 'info');
+    }
   };
 
-  const setupElectronMenuHandlers = () => {
+  const setupElectronMenuHandlers = useCallback(() => {
     if (window.electronAPI) {
       window.electronAPI.onMenuNewWallet(() => {
         if (isUnlocked) {
@@ -235,9 +217,9 @@ function App() {
         }
       });
     }
-  };
+  }, [isUnlocked, activeWalletName, handleRefreshBalance]);
 
-  const cleanupElectronMenuHandlers = () => {
+  const cleanupElectronMenuHandlers = useCallback(() => {
     if (window.electronAPI) {
       window.electronAPI.removeAllListeners('menu-new-wallet');
       window.electronAPI.removeAllListeners('menu-import-wallet');
@@ -245,7 +227,19 @@ function App() {
       window.electronAPI.removeAllListeners('menu-receive');
       window.electronAPI.removeAllListeners('menu-refresh-balance');
     }
-  };
+  }, []);
+
+  // Initialize app on mount
+  useEffect(() => {
+    initializeApp();
+    setupElectronMenuHandlers();
+
+    return () => {
+      cleanupElectronMenuHandlers();
+      // Clear cached encryption key when app closes
+      clearKey();
+    };
+  }, [initializeApp, setupElectronMenuHandlers, cleanupElectronMenuHandlers]);
 
   const handlePasswordSubmit = async (password) => {
     setPasswordDialogLoading(true);
@@ -403,31 +397,10 @@ function App() {
     }
   };
 
-  const handleWalletSelect = async (walletName) => {
-    const startTime = Date.now();
-    console.log(`[Performance] Starting wallet switch to '${walletName}'`);
-
-    try {
-      // Immediate UI feedback - update state optimistically
-      setActiveWalletName(walletName);
-      const uiUpdateTime = Date.now();
-      console.log(`[Performance] UI updated in ${uiUpdateTime - startTime}ms`);
-
-      const storage = await setActiveWallet(masterPassword, walletName);
-      const encryptionTime = Date.now();
-      console.log(`[Performance] Wallet switch completed in ${encryptionTime - startTime}ms (encryption: ${encryptionTime - uiUpdateTime}ms)`);
-
-      // Confirm the state matches what was saved (defensive programming)
-      setActiveWalletName(storage.active_wallet);
-      showSnackbar(`Switched to wallet '${walletName}'`, 'info');
-    } catch (error) {
-      const errorTime = Date.now();
-      console.log(`[Performance] Wallet switch failed after ${errorTime - startTime}ms`);
-
-      // Revert optimistic update on error
-      setActiveWalletName(activeWalletName);
-      showSnackbar('Failed to switch wallet: ' + error.message, 'error');
-    }
+  const handleWalletSelect = (walletName) => {
+    // Instant wallet switching - no persistence needed for UI state
+    setActiveWalletName(walletName);
+    showSnackbar(`Switched to wallet '${walletName}'`, 'info');
   };
 
   const handleRenameWallet = async (oldName, newName) => {
@@ -458,6 +431,55 @@ function App() {
       setSortDirection('asc');
     }
   };
+
+  // Memoize walletList with sorting to prevent unnecessary re-renders of the sidebar
+  const walletList = useMemo(() => {
+    const walletArray = Object.values(wallets);
+
+    if (sortMethod === 'custom' && customWalletOrder.length > 0) {
+      // Use custom order if available
+      const orderedWallets = [];
+      const remainingWallets = [...walletArray];
+
+      // First, add wallets in the custom order
+      customWalletOrder.forEach(walletName => {
+        const walletIndex = remainingWallets.findIndex(w => w.name === walletName);
+        if (walletIndex !== -1) {
+          orderedWallets.push(remainingWallets[walletIndex]);
+          remainingWallets.splice(walletIndex, 1);
+        }
+      });
+
+      // Then add any remaining wallets (new ones not in the custom order yet)
+      orderedWallets.push(...remainingWallets);
+
+      return orderedWallets;
+    }
+
+    // Standard sorting for other methods
+    return walletArray.sort((a, b) => {
+      let compareValue = 0;
+
+      switch (sortMethod) {
+        case 'name':
+          compareValue = a.name.localeCompare(b.name);
+          break;
+        case 'network':
+          compareValue = a.network.localeCompare(b.network);
+          break;
+        case 'created':
+          // Assume newer wallets don't have created_at, put them first
+          const aTime = a.created_at ? new Date(a.created_at).getTime() : Date.now();
+          const bTime = b.created_at ? new Date(b.created_at).getTime() : Date.now();
+          compareValue = aTime - bTime;
+          break;
+        default:
+          compareValue = a.name.localeCompare(b.name);
+      }
+
+      return sortDirection === 'asc' ? compareValue : -compareValue;
+    });
+  }, [wallets, sortMethod, sortDirection, customWalletOrder]);
 
   const handleDragEnd = useCallback((event) => {
     const { active, over } = event;
@@ -532,13 +554,6 @@ function App() {
     }
   };
 
-  const handleRefreshBalance = () => {
-    if (activeWalletName && wallets[activeWalletName]) {
-      refreshWalletBalance(activeWalletName, wallets[activeWalletName]);
-      showSnackbar('Refreshing balance...', 'info');
-    }
-  };
-
   const showSnackbar = (message, severity = 'info') => {
     setSnackbar({ open: true, message, severity });
   };
@@ -569,55 +584,6 @@ function App() {
   const activeWallet = useMemo(() => {
     return activeWalletName ? wallets[activeWalletName] : null;
   }, [activeWalletName, wallets]);
-
-  // Memoize walletList with sorting to prevent unnecessary re-renders of the sidebar
-  const walletList = useMemo(() => {
-    const walletArray = Object.values(wallets);
-
-    if (sortMethod === 'custom' && customWalletOrder.length > 0) {
-      // Use custom order if available
-      const orderedWallets = [];
-      const remainingWallets = [...walletArray];
-
-      // First, add wallets in the custom order
-      customWalletOrder.forEach(walletName => {
-        const walletIndex = remainingWallets.findIndex(w => w.name === walletName);
-        if (walletIndex !== -1) {
-          orderedWallets.push(remainingWallets[walletIndex]);
-          remainingWallets.splice(walletIndex, 1);
-        }
-      });
-
-      // Then add any remaining wallets (new ones not in the custom order yet)
-      orderedWallets.push(...remainingWallets);
-
-      return orderedWallets;
-    }
-
-    // Standard sorting for other methods
-    return walletArray.sort((a, b) => {
-      let compareValue = 0;
-
-      switch (sortMethod) {
-        case 'name':
-          compareValue = a.name.localeCompare(b.name);
-          break;
-        case 'network':
-          compareValue = a.network.localeCompare(b.network);
-          break;
-        case 'created':
-          // Assume newer wallets don't have created_at, put them first
-          const aTime = a.created_at ? new Date(a.created_at).getTime() : Date.now();
-          const bTime = b.created_at ? new Date(b.created_at).getTime() : Date.now();
-          compareValue = aTime - bTime;
-          break;
-        default:
-          compareValue = a.name.localeCompare(b.name);
-      }
-
-      return sortDirection === 'asc' ? compareValue : -compareValue;
-    });
-  }, [wallets, sortMethod, sortDirection, customWalletOrder]);
 
   const handleWalletUpdate = useCallback((walletName, updates) => {
     setWallets((prev) => {
@@ -705,6 +671,23 @@ function App() {
             >
               New Wallet
             </Button>
+
+            {walletList.length > 0 && (
+              <Button
+                fullWidth
+                variant={editMode ? "contained" : "outlined"}
+                startIcon={editMode ? <LockOpen /> : <Lock />}
+                onClick={() => setEditMode(!editMode)}
+                size="small"
+                sx={{
+                  mb: 1,
+                  color: editMode ? 'white' : 'text.secondary',
+                  borderColor: editMode ? 'primary.main' : 'rgba(255, 255, 255, 0.23)'
+                }}
+              >
+                {editMode ? 'Exit Edit Mode' : 'Edit Mode'}
+              </Button>
+            )}
           </Box>
 
           {/* Wallet Sorting Controls */}
@@ -764,7 +747,7 @@ function App() {
                     <SortableWalletItem
                       key={wallet.name}
                       wallet={wallet}
-                      isDragDisabled={sortMethod !== 'custom' || renamingWallet === wallet.name}
+                      isDragDisabled={sortMethod !== 'custom' || renamingWallet === wallet.name || !editMode}
                     >
                       <ListItem disablePadding sx={{ mb: 1 }}>
                   {renamingWallet === wallet.name ? (
@@ -835,47 +818,55 @@ function App() {
                               <Chip
                                 label={wallet.network}
                                 size="small"
-                                color={wallet.network === 'mainnet' ? 'primary' : 'secondary'}
+                                color={wallet.network === 'mainnet' ? 'success' : 'warning'}
                                 variant="outlined"
                               />
                               <Box>
-                                <Typography variant="caption" color="primary.main" fontWeight="medium">
+                                <Typography
+                                  variant="caption"
+                                  color={wallet.name === activeWalletName ? "inherit" : "primary.main"}
+                                  fontWeight="medium"
+                                >
                                   {(() => {
                                     const balance = balances[wallet.name] || wallet.balance || '0';
                                     const reserves = calculateReserves(balance);
                                     return reserves.availableBalance;
-                                  })()} XRP available
+                                  })()} XRP
                                 </Typography>
-                                <Typography variant="caption" display="block" color="text.secondary">
-                                  {(() => {
-                                    const balance = balances[wallet.name] || wallet.balance || '0';
-                                    const reserves = calculateReserves(balance);
-                                    return `${reserves.totalBalance} total (${reserves.reservedBalance} reserved)`;
-                                  })()}
+                                <Typography
+                                  variant="caption"
+                                  display="block"
+                                  color={wallet.name === activeWalletName ? "rgba(255, 255, 255, 0.7)" : "text.secondary"}
+                                >
+                                  Available
                                 </Typography>
                               </Box>
                             </Box>
                           </Box>
                         }
                       />
-                      <IconButton
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setRenamingWallet(wallet.name);
-                        }}
-                        sx={{
-                          position: 'absolute',
-                          right: 8,
-                          top: 8,
-                          opacity: 0.7,
-                          '&:hover': {
-                            opacity: 1
-                          }
-                        }}
-                      >
-                        <Edit fontSize="small" />
-                      </IconButton>
+                      {editMode && (
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setRenamingWallet(wallet.name);
+                          }}
+                          sx={{
+                            position: 'absolute',
+                            right: 8,
+                            top: 8,
+                            opacity: 0.8,
+                            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                            '&:hover': {
+                              opacity: 1,
+                              backgroundColor: 'rgba(255, 255, 255, 0.2)'
+                            }
+                          }}
+                        >
+                          <Edit fontSize="small" />
+                        </IconButton>
+                      )}
                     </ListItemButton>
                   )}
                       </ListItem>
@@ -907,7 +898,7 @@ function App() {
                       (activeWallet.network === 'testnet' ? <Science /> : <NetworkCheck />)}
                     label={isOperationLoading('networkConnection', activeWallet.name) ?
                       'Connecting...' : activeWallet.network}
-                    color={activeWallet.network === 'mainnet' ? 'primary' : 'secondary'}
+                    color={activeWallet.network === 'mainnet' ? 'success' : 'warning'}
                     variant="outlined"
                   />
                 </Box>
@@ -1003,13 +994,6 @@ function App() {
           </Alert>
         </Snackbar>
 
-        {/* Loading backdrop */}
-        <Backdrop
-          sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
-          open={loading}
-        >
-          <CircularProgress color="inherit" />
-        </Backdrop>
       </Box>
     </ThemeProvider>
   );

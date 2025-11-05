@@ -11,10 +11,7 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
-  TableHead,
   TableRow,
-  Paper,
   IconButton,
   Chip,
   FormControl,
@@ -22,7 +19,6 @@ import {
   Select,
   MenuItem,
   InputAdornment,
-  Divider,
   List,
   ListItem,
   ListItemText,
@@ -34,12 +30,10 @@ import {
   Launch,
   Refresh,
   Send,
-  ExpandMore,
   AccountBalanceWallet,
   NetworkCheck,
   Science,
   Security,
-  Settings,
   Download,
   Visibility,
   VisibilityOff,
@@ -59,14 +53,12 @@ import {
   createClient,
   preparePayment,
   signAndSubmit,
-  formatAmount,
   createWalletFromSecret,
   validateAmount,
-  isValidAddress,
   validateAddressForNetwork,
   isValidDestinationTag,
-  getNetworkConfig,
-  getAccountExplorerUrl
+  getAccountExplorerUrl,
+  calculateReserves
 } from '../utils/xrplWallet';
 
 import QrScanner from 'qr-scanner';
@@ -536,7 +528,7 @@ const WalletTabs = ({
                         </TableCell>
                       </TableRow>
                       <TableRow>
-                        <TableCell><strong>Balance</strong></TableCell>
+                        <TableCell><strong>Total Balance</strong></TableCell>
                         <TableCell>
                           <Box display="flex" alignItems="center" gap={1}>
                             <Typography variant="h6" color="primary">
@@ -548,6 +540,43 @@ const WalletTabs = ({
                           </Box>
                         </TableCell>
                       </TableRow>
+                      {(() => {
+                        const reserves = calculateReserves(balance);
+                        return [
+                          <TableRow key="available">
+                            <TableCell><strong>Available Balance</strong></TableCell>
+                            <TableCell>
+                              <Typography variant="body1" color="success.main" fontWeight="medium">
+                                {reserves.availableBalance} XRP
+                              </Typography>
+                            </TableCell>
+                          </TableRow>,
+                          <TableRow key="reserved">
+                            <TableCell><strong>Reserved Balance</strong></TableCell>
+                            <TableCell>
+                              <Typography variant="body2" color="text.secondary">
+                                {reserves.reservedBalance} XRP
+                              </Typography>
+                            </TableCell>
+                          </TableRow>,
+                          <TableRow key="base-reserve">
+                            <TableCell style={{ paddingLeft: '24px' }}>• Base Reserve</TableCell>
+                            <TableCell>
+                              <Typography variant="body2" color="text.secondary">
+                                {reserves.baseReserveFormatted} XRP
+                              </Typography>
+                            </TableCell>
+                          </TableRow>,
+                          <TableRow key="owner-reserve">
+                            <TableCell style={{ paddingLeft: '24px' }}>• Owner Reserve</TableCell>
+                            <TableCell>
+                              <Typography variant="body2" color="text.secondary">
+                                {reserves.ownerReserveFormatted} XRP ({reserves.ownerCount} objects)
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                        ];
+                      })()}
                       <TableRow>
                         <TableCell><strong>Network</strong></TableCell>
                         <TableCell>

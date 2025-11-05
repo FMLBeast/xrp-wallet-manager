@@ -450,22 +450,32 @@ export function getAccountExplorerUrl(network, address) {
 }
 
 /**
- * Calculate XRP reserves and available balance
+ * Calculate XRP reserves and available balance with current XRPL reserve requirements
  */
-export function calculateReserves(balance, ownerCount = 0) {
-  const BASE_RESERVE = 10; // Base reserve is currently 10 XRP
-  const OWNER_RESERVE = 2; // Each owned object requires 2 XRP reserve
+export function calculateReserves(balance, ownerCount = 0, accountInfo = null) {
+  // Current XRPL reserve requirements (as of 2024)
+  const BASE_RESERVE = 1; // Base reserve is currently 1 XRP
+  const OWNER_RESERVE = 0.2; // Each owned object requires 0.2 XRP reserve
 
-  const totalReserve = BASE_RESERVE + (ownerCount * OWNER_RESERVE);
+  // If we have account info, use the actual owner count
+  let actualOwnerCount = ownerCount;
+  if (accountInfo && accountInfo.OwnerCount !== undefined) {
+    actualOwnerCount = accountInfo.OwnerCount;
+  }
+
+  const totalReserve = BASE_RESERVE + (actualOwnerCount * OWNER_RESERVE);
   const balanceNum = parseFloat(balance || 0);
   const availableBalance = Math.max(0, balanceNum - totalReserve);
 
   return {
     baseReserve: BASE_RESERVE,
-    ownerReserve: ownerCount * OWNER_RESERVE,
+    ownerReserve: actualOwnerCount * OWNER_RESERVE,
     totalReserve,
+    ownerCount: actualOwnerCount,
     availableBalance: availableBalance.toFixed(6),
     reservedBalance: totalReserve.toFixed(6),
-    totalBalance: balanceNum.toFixed(6)
+    totalBalance: balanceNum.toFixed(6),
+    baseReserveFormatted: BASE_RESERVE.toFixed(1),
+    ownerReserveFormatted: (actualOwnerCount * OWNER_RESERVE).toFixed(1)
   };
 }

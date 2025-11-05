@@ -10,7 +10,6 @@ import { getCachedKey, getCachedSalt, hasKey } from './keyCache.js';
 const PBKDF2_ITERATIONS = 390000;
 const SALT_LENGTH = 32;
 const NONCE_LENGTH = 12;
-const MAC_LENGTH = 32;
 
 /**
  * Generate cryptographically secure random bytes

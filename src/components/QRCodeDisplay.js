@@ -6,7 +6,6 @@ import {
   CardContent,
   Typography,
   TextField,
-  Button,
   IconButton,
   Grid,
   Alert,
@@ -31,7 +30,7 @@ export default function QRCodeDisplay({ wallet, onShowSnackbar }) {
 
   useEffect(() => {
     generateQRCode();
-  }, [wallet, amount, destinationTag, memo]);
+  }, [wallet, amount, destinationTag, memo, generateQRCode]);
 
   const generateQRCode = async () => {
     if (!wallet) return;

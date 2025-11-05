@@ -13,7 +13,6 @@ import {
   CircularProgress,
   Card,
   CardContent,
-  Divider,
   Table,
   TableBody,
   TableCell,
@@ -22,10 +21,8 @@ import {
 import {
   Send,
   Security,
-  Warning,
   AccountBalanceWallet,
-  NetworkCheck,
-  Schedule
+  NetworkCheck
 } from '@mui/icons-material';
 import { formatAmount } from '../utils/xrplWallet';
 

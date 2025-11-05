@@ -24,7 +24,7 @@ import {
   Divider
 } from '@mui/material';
 import { Add, AccountBalanceWallet, Security, NetworkCheck, Science } from '@mui/icons-material';
-import { createWalletFromSecret, generateTestWallet, formatAmount } from '../utils/xrplWallet';
+import { createWalletFromSecret, generateTestWallet } from '../utils/xrplWallet';
 
 const steps = ['Enter Secret', 'Configure Wallet', 'Confirm Import'];
 
