@@ -97,6 +97,9 @@ const WalletTabs = ({
     destinationTag: '',
     memo: ''
   });
+
+  // Address book selection state
+  const [selectedAddressBookItem, setSelectedAddressBookItem] = useState('');
   const [sendLoading, setSendLoading] = useState(false);
   const [sendErrors, setSendErrors] = useState({});
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -132,6 +135,17 @@ const WalletTabs = ({
     // Clear error for this field
     if (sendErrors[field]) {
       setSendErrors(prev => ({ ...prev, [field]: '' }));
+    }
+
+    // Clear address book selection when destination is manually changed
+    if (field === 'destination') {
+      // Check if the new value matches any address in the address book
+      const matchingContact = addressBook.find(contact => contact.address === value);
+      if (matchingContact) {
+        setSelectedAddressBookItem(matchingContact.label);
+      } else {
+        setSelectedAddressBookItem('');
+      }
     }
   };
 
@@ -561,9 +575,12 @@ const WalletTabs = ({
                       <FormControl fullWidth margin="normal">
                         <InputLabel>Quick Select from Address Book</InputLabel>
                         <Select
-                          value=""
+                          value={selectedAddressBookItem}
                           onChange={(e) => {
-                            const contact = addressBook.find(c => c.label === e.target.value);
+                            const selectedLabel = e.target.value;
+                            setSelectedAddressBookItem(selectedLabel);
+
+                            const contact = addressBook.find(c => c.label === selectedLabel);
                             if (contact) {
                               handleSendFormChange('destination', contact.address);
                               if (contact.destination_tag) {
