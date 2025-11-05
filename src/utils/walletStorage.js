@@ -236,7 +236,8 @@ export async function renameWallet(masterPassword, oldName, newName) {
   }
 
   if (oldName === newName) {
-    throw new Error('New name must be different from the current name');
+    // No change needed, return current storage without error
+    return storage;
   }
 
   if (!storage.wallets[oldName]) {

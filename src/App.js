@@ -1,5 +1,47 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import {
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+// Sortable Wallet Item Component
+function SortableWalletItem({ wallet, children, isDragDisabled = false }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: wallet.name, disabled: isDragDisabled });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      {children}
+    </div>
+  );
+}
+import {
   ThemeProvider,
   createTheme,
   CssBaseline,
@@ -50,7 +92,8 @@ import {
   Edit,
   Check,
   Close,
-  MoreVert
+  MoreVert,
+  DragIndicator
 } from '@mui/icons-material';
 
 // Import our new components and utilities
@@ -58,7 +101,7 @@ import MasterPasswordDialog from './components/MasterPasswordDialog';
 import ImportWalletDialog from './components/ImportWalletDialog';
 import WalletTabs from './components/WalletTabs';
 import { walletsFileExists, loadWalletStorage, addWallet, setActiveWallet, resetWalletStorage, addAddressBookEntry, renameWallet } from './utils/walletStorage';
-import { generateTestWallet } from './utils/xrplWallet';
+import { generateTestWallet, calculateReserves } from './utils/xrplWallet';
 import { cacheKey, clearKey } from './utils/keyCache.js';
 
 const theme = createTheme({
@@ -117,9 +160,18 @@ function App() {
   const [networkStatus, setNetworkStatus] = useState({});
 
   // Wallet management state
-  const [sortMethod, setSortMethod] = useState('name'); // 'name', 'network', 'created'
+  const [sortMethod, setSortMethod] = useState('name'); // 'name', 'network', 'created', 'custom'
   const [sortDirection, setSortDirection] = useState('asc'); // 'asc', 'desc'
+  const [customWalletOrder, setCustomWalletOrder] = useState([]); // Array of wallet names in custom order
   const [renamingWallet, setRenamingWallet] = useState(null);
+
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   // Initialize app on mount
   useEffect(() => {
@@ -407,6 +459,23 @@ function App() {
     }
   };
 
+  const handleDragEnd = useCallback((event) => {
+    const { active, over } = event;
+
+    if (active.id !== over?.id) {
+      const oldIndex = walletList.findIndex(wallet => wallet.name === active.id);
+      const newIndex = walletList.findIndex(wallet => wallet.name === over.id);
+
+      const newOrder = arrayMove(walletList, oldIndex, newIndex).map(wallet => wallet.name);
+      setCustomWalletOrder(newOrder);
+
+      // Switch to custom order mode if not already
+      if (sortMethod !== 'custom') {
+        setSortMethod('custom');
+      }
+    }
+  }, [walletList, sortMethod]);
+
   const refreshWalletBalance = async (walletName, walletData, masterPasswordOverride = null) => {
     setOperationLoading('balanceRefresh', walletName, true);
     setOperationLoading('networkConnection', walletName, true);
@@ -505,6 +574,27 @@ function App() {
   const walletList = useMemo(() => {
     const walletArray = Object.values(wallets);
 
+    if (sortMethod === 'custom' && customWalletOrder.length > 0) {
+      // Use custom order if available
+      const orderedWallets = [];
+      const remainingWallets = [...walletArray];
+
+      // First, add wallets in the custom order
+      customWalletOrder.forEach(walletName => {
+        const walletIndex = remainingWallets.findIndex(w => w.name === walletName);
+        if (walletIndex !== -1) {
+          orderedWallets.push(remainingWallets[walletIndex]);
+          remainingWallets.splice(walletIndex, 1);
+        }
+      });
+
+      // Then add any remaining wallets (new ones not in the custom order yet)
+      orderedWallets.push(...remainingWallets);
+
+      return orderedWallets;
+    }
+
+    // Standard sorting for other methods
     return walletArray.sort((a, b) => {
       let compareValue = 0;
 
@@ -527,7 +617,7 @@ function App() {
 
       return sortDirection === 'asc' ? compareValue : -compareValue;
     });
-  }, [wallets, sortMethod, sortDirection]);
+  }, [wallets, sortMethod, sortDirection, customWalletOrder]);
 
   const handleWalletUpdate = useCallback((walletName, updates) => {
     setWallets((prev) => {
@@ -642,21 +732,41 @@ function App() {
                 >
                   Network {sortMethod === 'network' && (sortDirection === 'asc' ? '↑' : '↓')}
                 </Button>
+                <Button
+                  size="small"
+                  variant={sortMethod === 'custom' ? 'contained' : 'outlined'}
+                  startIcon={<DragIndicator />}
+                  onClick={() => handleSortChange('custom')}
+                  sx={{ minWidth: 'auto', fontSize: '0.7rem' }}
+                >
+                  Custom Order
+                </Button>
               </Box>
             </Box>
           )}
 
           {/* Wallet List */}
-          <List sx={{ flexGrow: 1, px: 1 }}>
-            {walletList.length === 0 ? (
-              <ListItem>
-                <Typography variant="body2" color="text.secondary">
-                  No wallets yet. Create your first wallet above.
-                </Typography>
-              </ListItem>
-            ) : (
-              walletList.map((wallet) => (
-                <ListItem key={wallet.name} disablePadding sx={{ mb: 1 }}>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={walletList.map(w => w.name)} strategy={verticalListSortingStrategy}>
+              <List sx={{ flexGrow: 1, px: 1 }}>
+                {walletList.length === 0 ? (
+                  <ListItem>
+                    <Typography variant="body2" color="text.secondary">
+                      No wallets yet. Create your first wallet above.
+                    </Typography>
+                  </ListItem>
+                ) : (
+                  walletList.map((wallet) => (
+                    <SortableWalletItem
+                      key={wallet.name}
+                      wallet={wallet}
+                      isDragDisabled={sortMethod !== 'custom' || renamingWallet === wallet.name}
+                    >
+                      <ListItem disablePadding sx={{ mb: 1 }}>
                   {renamingWallet === wallet.name ? (
                     // Rename mode
                     <Box sx={{ width: '100%', p: 1, bgcolor: 'action.hover', borderRadius: 1 }}>
@@ -728,9 +838,22 @@ function App() {
                                 color={wallet.network === 'mainnet' ? 'primary' : 'secondary'}
                                 variant="outlined"
                               />
-                              <Typography variant="caption">
-                                {balances[wallet.name] || wallet.balance || '0'} XRP
-                              </Typography>
+                              <Box>
+                                <Typography variant="caption" color="primary.main" fontWeight="medium">
+                                  {(() => {
+                                    const balance = balances[wallet.name] || wallet.balance || '0';
+                                    const reserves = calculateReserves(balance);
+                                    return reserves.availableBalance;
+                                  })()} XRP available
+                                </Typography>
+                                <Typography variant="caption" display="block" color="text.secondary">
+                                  {(() => {
+                                    const balance = balances[wallet.name] || wallet.balance || '0';
+                                    const reserves = calculateReserves(balance);
+                                    return `${reserves.totalBalance} total (${reserves.reservedBalance} reserved)`;
+                                  })()}
+                                </Typography>
+                              </Box>
                             </Box>
                           </Box>
                         }
@@ -755,10 +878,13 @@ function App() {
                       </IconButton>
                     </ListItemButton>
                   )}
-                </ListItem>
-              ))
-            )}
-          </List>
+                      </ListItem>
+                    </SortableWalletItem>
+                  ))
+                )}
+              </List>
+            </SortableContext>
+          </DndContext>
         </Drawer>
 
         {/* Main Content */}

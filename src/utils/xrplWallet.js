@@ -448,3 +448,24 @@ export function getAccountExplorerUrl(network, address) {
   const baseUrl = explorers[network] || explorers.testnet;
   return `${baseUrl}/accounts/${address}`;
 }
+
+/**
+ * Calculate XRP reserves and available balance
+ */
+export function calculateReserves(balance, ownerCount = 0) {
+  const BASE_RESERVE = 10; // Base reserve is currently 10 XRP
+  const OWNER_RESERVE = 2; // Each owned object requires 2 XRP reserve
+
+  const totalReserve = BASE_RESERVE + (ownerCount * OWNER_RESERVE);
+  const balanceNum = parseFloat(balance || 0);
+  const availableBalance = Math.max(0, balanceNum - totalReserve);
+
+  return {
+    baseReserve: BASE_RESERVE,
+    ownerReserve: ownerCount * OWNER_RESERVE,
+    totalReserve,
+    availableBalance: availableBalance.toFixed(6),
+    reservedBalance: totalReserve.toFixed(6),
+    totalBalance: balanceNum.toFixed(6)
+  };
+}
