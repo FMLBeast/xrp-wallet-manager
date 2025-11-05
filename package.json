@@ -2,6 +2,10 @@
   "name": "xrp-wallet-manager",
   "version": "1.0.0",
   "description": "Secure XRP Ledger wallet manager with multi-wallet support",
+  "author": {
+    "name": "FMLBeast",
+    "email": "fmlbeast@github.com"
+  },
   "main": "main.js",
   "homepage": "./",
   "private": true,
@@ -74,6 +78,14 @@
     },
     "linux": {
       "icon": "assets/icon.png",
+      "category": "Finance",
+      "maintainer": "fmlbeast@github.com",
+      "desktop": {
+        "Name": "XRP Wallet Manager",
+        "Comment": "Secure XRP Ledger wallet manager with multi-wallet support",
+        "Categories": "Finance;Utility;",
+        "Keywords": "xrp;wallet;cryptocurrency;ledger;blockchain;"
+      },
       "target": [
         {
           "target": "AppImage",

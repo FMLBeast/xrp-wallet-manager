@@ -5,13 +5,13 @@ Add these badges to your main README.md to show build status and provide downloa
 ## 🏷️ Status Badges
 
 ```markdown
-[![Build & Release](https://github.com/YOURUSERNAME/xrp_wallet_manager/actions/workflows/build-release.yml/badge.svg)](https://github.com/YOURUSERNAME/xrp_wallet_manager/actions/workflows/build-release.yml)
-[![PR Build & Test](https://github.com/YOURUSERNAME/xrp_wallet_manager/actions/workflows/pr-build.yml/badge.svg)](https://github.com/YOURUSERNAME/xrp_wallet_manager/actions/workflows/pr-build.yml)
-[![Code Signing](https://github.com/YOURUSERNAME/xrp_wallet_manager/actions/workflows/code-signing.yml/badge.svg)](https://github.com/YOURUSERNAME/xrp_wallet_manager/actions/workflows/code-signing.yml)
+[![Build & Release](https://github.com/FMLBeast/xrp-wallet-manager/actions/workflows/build-release.yml/badge.svg)](https://github.com/FMLBeast/xrp-wallet-manager/actions/workflows/build-release.yml)
+[![PR Build & Test](https://github.com/FMLBeast/xrp-wallet-manager/actions/workflows/pr-build.yml/badge.svg)](https://github.com/FMLBeast/xrp-wallet-manager/actions/workflows/pr-build.yml)
+[![Code Signing](https://github.com/FMLBeast/xrp-wallet-manager/actions/workflows/code-signing.yml/badge.svg)](https://github.com/FMLBeast/xrp-wallet-manager/actions/workflows/code-signing.yml)
 
-[![GitHub release (latest by date)](https://img.shields.io/github/v/release/YOURUSERNAME/xrp_wallet_manager)](https://github.com/YOURUSERNAME/xrp_wallet_manager/releases/latest)
-[![GitHub downloads](https://img.shields.io/github/downloads/YOURUSERNAME/xrp_wallet_manager/total)](https://github.com/YOURUSERNAME/xrp_wallet_manager/releases)
-[![License](https://img.shields.io/github/license/YOURUSERNAME/xrp_wallet_manager)](LICENSE)
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/FMLBeast/xrp-wallet-manager)](https://github.com/FMLBeast/xrp-wallet-manager/releases/latest)
+[![GitHub downloads](https://img.shields.io/github/downloads/FMLBeast/xrp-wallet-manager/total)](https://github.com/FMLBeast/xrp-wallet-manager/releases)
+[![License](https://img.shields.io/github/license/FMLBeast/xrp-wallet-manager)](LICENSE)
 ```
 
 ## 📦 Download Section Template
@@ -21,16 +21,16 @@ Add these badges to your main README.md to show build status and provide downloa
 
 ### Latest Release
 
-[![Download Latest](https://img.shields.io/badge/Download-Latest%20Release-blue?style=for-the-badge)](https://github.com/YOURUSERNAME/xrp_wallet_manager/releases/latest)
+[![Download Latest](https://img.shields.io/badge/Download-Latest%20Release-blue?style=for-the-badge)](https://github.com/FMLBeast/xrp-wallet-manager/releases/latest)
 
 ### Platform-Specific Downloads
 
 | Platform | Download | Size | Checksum |
 |----------|----------|------|----------|
-| **Windows** | [Setup.exe](https://github.com/YOURUSERNAME/xrp_wallet_manager/releases/latest/download/XRP-Wallet-Manager-Setup.exe) | ~85 MB | [checksums](https://github.com/YOURUSERNAME/xrp_wallet_manager/releases/latest/download/checksums-windows.txt) |
-| **macOS** | [.dmg](https://github.com/YOURUSERNAME/xrp_wallet_manager/releases/latest/download/XRP-Wallet-Manager.dmg) | ~90 MB | [checksums](https://github.com/YOURUSERNAME/xrp_wallet_manager/releases/latest/download/checksums-mac.txt) |
-| **Linux** | [.deb](https://github.com/YOURUSERNAME/xrp_wallet_manager/releases/latest/download/xrp-wallet-manager.deb) | ~80 MB | [checksums](https://github.com/YOURUSERNAME/xrp_wallet_manager/releases/latest/download/checksums-linux.txt) |
-| **Linux** | [.AppImage](https://github.com/YOURUSERNAME/xrp_wallet_manager/releases/latest/download/XRP-Wallet-Manager.AppImage) | ~80 MB | [checksums](https://github.com/YOURUSERNAME/xrp_wallet_manager/releases/latest/download/checksums-linux.txt) |
+| **Windows** | [Setup.exe](https://github.com/FMLBeast/xrp-wallet-manager/releases/latest/download/XRP-Wallet-Manager-Setup.exe) | ~85 MB | [checksums](https://github.com/FMLBeast/xrp-wallet-manager/releases/latest/download/checksums-windows.txt) |
+| **macOS** | [.dmg](https://github.com/FMLBeast/xrp-wallet-manager/releases/latest/download/XRP-Wallet-Manager.dmg) | ~90 MB | [checksums](https://github.com/FMLBeast/xrp-wallet-manager/releases/latest/download/checksums-mac.txt) |
+| **Linux** | [.deb](https://github.com/FMLBeast/xrp-wallet-manager/releases/latest/download/xrp-wallet-manager.deb) | ~80 MB | [checksums](https://github.com/FMLBeast/xrp-wallet-manager/releases/latest/download/checksums-linux.txt) |
+| **Linux** | [.AppImage](https://github.com/FMLBeast/xrp-wallet-manager/releases/latest/download/XRP-Wallet-Manager.AppImage) | ~80 MB | [checksums](https://github.com/FMLBeast/xrp-wallet-manager/releases/latest/download/checksums-linux.txt) |
 
 ### Installation Instructions
 
@@ -50,7 +50,7 @@ Add these badges to your main README.md to show build status and provide downloa
 #### Linux (Debian/Ubuntu)
 ```bash
 # Download and install .deb package
-wget https://github.com/YOURUSERNAME/xrp_wallet_manager/releases/latest/download/xrp-wallet-manager.deb
+wget https://github.com/FMLBeast/xrp-wallet-manager/releases/latest/download/xrp-wallet-manager.deb
 sudo dpkg -i xrp-wallet-manager.deb
 sudo apt-get install -f  # Fix any dependency issues
 
@@ -61,7 +61,7 @@ xrp-wallet-manager
 #### Linux (AppImage)
 ```bash
 # Download AppImage
-wget https://github.com/YOURUSERNAME/xrp_wallet_manager/releases/latest/download/XRP-Wallet-Manager.AppImage
+wget https://github.com/FMLBeast/xrp-wallet-manager/releases/latest/download/XRP-Wallet-Manager.AppImage
 
 # Make executable and run
 chmod +x XRP-Wallet-Manager.AppImage
@@ -74,7 +74,7 @@ To verify the integrity of your download:
 
 ```bash
 # Download checksums
-curl -L https://github.com/YOURUSERNAME/xrp_wallet_manager/releases/latest/download/checksums-linux.txt -o checksums.txt
+curl -L https://github.com/FMLBeast/xrp-wallet-manager/releases/latest/download/checksums-linux.txt -o checksums.txt
 
 # Verify (Linux example)
 sha256sum -c checksums.txt
@@ -147,15 +147,15 @@ sha256sum -c checksums-linux.txt
 ```markdown
 ## 📊 Download Statistics
 
-[![Downloads](https://img.shields.io/github/downloads/YOURUSERNAME/xrp_wallet_manager/total?style=social)](https://github.com/YOURUSERNAME/xrp_wallet_manager/releases)
+[![Downloads](https://img.shields.io/github/downloads/FMLBeast/xrp-wallet-manager/total?style=social)](https://github.com/FMLBeast/xrp-wallet-manager/releases)
 
 | Version | Downloads | Release Date |
 |---------|-----------|--------------|
-| Latest | ![](https://img.shields.io/github/downloads/YOURUSERNAME/xrp_wallet_manager/latest/total) | ![](https://img.shields.io/github/release-date/YOURUSERNAME/xrp_wallet_manager) |
+| Latest | ![](https://img.shields.io/github/downloads/FMLBeast/xrp-wallet-manager/latest/total) | ![](https://img.shields.io/github/release-date/FMLBeast/xrp-wallet-manager) |
 
-View detailed analytics in the [Releases](https://github.com/YOURUSERNAME/xrp_wallet_manager/releases) section.
+View detailed analytics in the [Releases](https://github.com/FMLBeast/xrp-wallet-manager/releases) section.
 ```
 
 ---
 
-**Remember to replace `YOURUSERNAME` with your actual GitHub username!**
+**Remember to replace `FMLBeast` with your actual GitHub username!**

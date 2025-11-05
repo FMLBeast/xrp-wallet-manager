@@ -4,25 +4,25 @@
 
 **A secure, professional XRP Ledger wallet built with Electron and React**
 
-[![Build & Release](https://github.com/YOURUSERNAME/xrp_wallet_manager/actions/workflows/build-release.yml/badge.svg)](https://github.com/YOURUSERNAME/xrp_wallet_manager/actions/workflows/build-release.yml)
-[![PR Build & Test](https://github.com/YOURUSERNAME/xrp_wallet_manager/actions/workflows/pr-build.yml/badge.svg)](https://github.com/YOURUSERNAME/xrp_wallet_manager/actions/workflows/pr-build.yml)
-[![GitHub release (latest by date)](https://img.shields.io/github/v/release/YOURUSERNAME/xrp_wallet_manager)](https://github.com/YOURUSERNAME/xrp_wallet_manager/releases/latest)
+[![Build & Release](https://github.com/FMLBeast/xrp-wallet-manager/actions/workflows/build-release.yml/badge.svg)](https://github.com/FMLBeast/xrp-wallet-manager/actions/workflows/build-release.yml)
+[![PR Build & Test](https://github.com/FMLBeast/xrp-wallet-manager/actions/workflows/pr-build.yml/badge.svg)](https://github.com/FMLBeast/xrp-wallet-manager/actions/workflows/pr-build.yml)
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/FMLBeast/xrp-wallet-manager)](https://github.com/FMLBeast/xrp-wallet-manager/releases/latest)
 
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
 ![License](https://img.shields.io/badge/license-MIT-green)
-[![GitHub downloads](https://img.shields.io/github/downloads/YOURUSERNAME/xrp_wallet_manager/total)](https://github.com/YOURUSERNAME/xrp_wallet_manager/releases)
+[![GitHub downloads](https://img.shields.io/github/downloads/FMLBeast/xrp-wallet-manager/total)](https://github.com/FMLBeast/xrp-wallet-manager/releases)
 
 </div>
 
 ## 📦 Download
 
-[![Download Latest](https://img.shields.io/badge/Download-Latest%20Release-blue?style=for-the-badge)](https://github.com/YOURUSERNAME/xrp_wallet_manager/releases/latest)
+[![Download Latest](https://img.shields.io/badge/Download-Latest%20Release-blue?style=for-the-badge)](https://github.com/FMLBeast/xrp-wallet-manager/releases/latest)
 
 | Platform | Download | Notes |
 |----------|----------|-------|
-| **Windows** | [Setup.exe](https://github.com/YOURUSERNAME/xrp_wallet_manager/releases/latest) | Installer + Portable |
-| **macOS** | [.dmg](https://github.com/YOURUSERNAME/xrp_wallet_manager/releases/latest) | Universal (Intel + Apple Silicon) |
-| **Linux** | [.deb](https://github.com/YOURUSERNAME/xrp_wallet_manager/releases/latest) / [.AppImage](https://github.com/YOURUSERNAME/xrp_wallet_manager/releases/latest) | Ubuntu/Debian + Universal |
+| **Windows** | [Setup.exe](https://github.com/FMLBeast/xrp-wallet-manager/releases/latest) | Installer + Portable |
+| **macOS** | [.dmg](https://github.com/FMLBeast/xrp-wallet-manager/releases/latest) | Universal (Intel + Apple Silicon) |
+| **Linux** | [.deb](https://github.com/FMLBeast/xrp-wallet-manager/releases/latest) / [.AppImage](https://github.com/FMLBeast/xrp-wallet-manager/releases/latest) | Ubuntu/Debian + Universal |
 
 ## ✨ Features
 
@@ -76,7 +76,7 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOURUSERNAME/xrp_wallet_manager.git
+git clone https://github.com/FMLBeast/xrp-wallet-manager.git
 cd xrp_wallet_manager
 
 # Install dependencies
@@ -327,8 +327,8 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## 📞 Support
 
-- **Bug Reports**: [GitHub Issues](https://github.com/YOURUSERNAME/xrp_wallet_manager/issues)
-- **Feature Requests**: [GitHub Discussions](https://github.com/YOURUSERNAME/xrp_wallet_manager/discussions)
+- **Bug Reports**: [GitHub Issues](https://github.com/FMLBeast/xrp-wallet-manager/issues)
+- **Feature Requests**: [GitHub Discussions](https://github.com/FMLBeast/xrp-wallet-manager/discussions)
 - **Security Issues**: Email security@yourmail.com (not public issues)
 
 ## ⚠️ Disclaimer
@@ -348,6 +348,6 @@ This software is provided "as is" without warranty of any kind. Users are respon
 
 **Made with ❤️ for the XRP Ledger community**
 
-*Replace `YOURUSERNAME` with your GitHub username*
+*Replace `FMLBeast` with your GitHub username*
 
 </div>
