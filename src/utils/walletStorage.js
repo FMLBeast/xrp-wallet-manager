@@ -225,6 +225,71 @@ export async function removeWallet(masterPassword, walletName) {
 }
 
 /**
+ * Rename a wallet
+ */
+export async function renameWallet(masterPassword, oldName, newName) {
+  const storage = await loadWalletStorage(masterPassword);
+
+  // Validation
+  if (!oldName || !newName) {
+    throw new Error('Both old and new wallet names are required');
+  }
+
+  if (oldName === newName) {
+    throw new Error('New name must be different from the current name');
+  }
+
+  if (!storage.wallets[oldName]) {
+    throw new Error(`Wallet '${oldName}' not found`);
+  }
+
+  if (storage.wallets[newName]) {
+    throw new Error(`Wallet name '${newName}' already exists`);
+  }
+
+  // Validate new name format
+  if (newName.trim() !== newName || newName.length < 1) {
+    throw new Error('Wallet name cannot be empty or contain only whitespace');
+  }
+
+  if (newName.length > 50) {
+    throw new Error('Wallet name cannot be longer than 50 characters');
+  }
+
+  // Create new wallet entry with the new name
+  const walletData = { ...storage.wallets[oldName] };
+  walletData.name = newName.trim();
+
+  // Add updated timestamp
+  walletData.updated_at = new Date().toISOString();
+
+  // Update storage
+  storage.wallets[newName] = walletData;
+  delete storage.wallets[oldName];
+
+  // Update active wallet if it was the renamed wallet
+  if (storage.active_wallet === oldName) {
+    storage.active_wallet = newName;
+  }
+
+  // Update address book entries that reference this wallet
+  if (storage.address_book) {
+    storage.address_book = storage.address_book.map(entry => {
+      if (entry.label === `${oldName} (${walletData.network})`) {
+        return {
+          ...entry,
+          label: `${newName} (${walletData.network})`
+        };
+      }
+      return entry;
+    });
+  }
+
+  await saveWalletStorage(masterPassword, storage);
+  return storage;
+}
+
+/**
  * Set active wallet
  */
 export async function setActiveWallet(masterPassword, walletName) {

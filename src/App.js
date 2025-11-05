@@ -18,6 +18,12 @@ import {
   CardContent,
   IconButton,
   Chip,
+  Menu,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
+  TextField,
   Alert,
   Snackbar,
   Tabs,
@@ -38,14 +44,20 @@ import {
   Science,
   Download,
   Upload,
-  People
+  People,
+  Sort,
+  SortByAlpha,
+  Edit,
+  Check,
+  Close,
+  MoreVert
 } from '@mui/icons-material';
 
 // Import our new components and utilities
 import MasterPasswordDialog from './components/MasterPasswordDialog';
 import ImportWalletDialog from './components/ImportWalletDialog';
 import WalletTabs from './components/WalletTabs';
-import { walletsFileExists, loadWalletStorage, addWallet, setActiveWallet, resetWalletStorage, addAddressBookEntry } from './utils/walletStorage';
+import { walletsFileExists, loadWalletStorage, addWallet, setActiveWallet, resetWalletStorage, addAddressBookEntry, renameWallet } from './utils/walletStorage';
 import { generateTestWallet } from './utils/xrplWallet';
 import { cacheKey, clearKey } from './utils/keyCache.js';
 
@@ -103,6 +115,11 @@ function App() {
   // Network and balance state
   const [balances, setBalances] = useState({});
   const [networkStatus, setNetworkStatus] = useState({});
+
+  // Wallet management state
+  const [sortMethod, setSortMethod] = useState('name'); // 'name', 'network', 'created'
+  const [sortDirection, setSortDirection] = useState('asc'); // 'asc', 'desc'
+  const [renamingWallet, setRenamingWallet] = useState(null);
 
   // Initialize app on mount
   useEffect(() => {
@@ -361,6 +378,35 @@ function App() {
     }
   };
 
+  const handleRenameWallet = async (oldName, newName) => {
+    try {
+      const storage = await renameWallet(masterPassword, oldName, newName);
+
+      // Update state
+      setWallets(storage.wallets);
+      setActiveWalletName(storage.active_wallet);
+      setAddressBook(storage.address_book);
+
+      // Clear renaming state
+      setRenamingWallet(null);
+
+      showSnackbar(`Wallet renamed to '${newName}'`, 'success');
+    } catch (error) {
+      showSnackbar('Failed to rename wallet: ' + error.message, 'error');
+    }
+  };
+
+  const handleSortChange = (method) => {
+    if (sortMethod === method) {
+      // If same method, toggle direction
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // If different method, set new method with ascending order
+      setSortMethod(method);
+      setSortDirection('asc');
+    }
+  };
+
   const refreshWalletBalance = async (walletName, walletData, masterPasswordOverride = null) => {
     setOperationLoading('balanceRefresh', walletName, true);
     setOperationLoading('networkConnection', walletName, true);
@@ -455,10 +501,33 @@ function App() {
     return activeWalletName ? wallets[activeWalletName] : null;
   }, [activeWalletName, wallets]);
 
-  // Memoize walletList to prevent unnecessary re-renders of the sidebar
+  // Memoize walletList with sorting to prevent unnecessary re-renders of the sidebar
   const walletList = useMemo(() => {
-    return Object.values(wallets);
-  }, [wallets]);
+    const walletArray = Object.values(wallets);
+
+    return walletArray.sort((a, b) => {
+      let compareValue = 0;
+
+      switch (sortMethod) {
+        case 'name':
+          compareValue = a.name.localeCompare(b.name);
+          break;
+        case 'network':
+          compareValue = a.network.localeCompare(b.network);
+          break;
+        case 'created':
+          // Assume newer wallets don't have created_at, put them first
+          const aTime = a.created_at ? new Date(a.created_at).getTime() : Date.now();
+          const bTime = b.created_at ? new Date(b.created_at).getTime() : Date.now();
+          compareValue = aTime - bTime;
+          break;
+        default:
+          compareValue = a.name.localeCompare(b.name);
+      }
+
+      return sortDirection === 'asc' ? compareValue : -compareValue;
+    });
+  }, [wallets, sortMethod, sortDirection]);
 
   const handleWalletUpdate = useCallback((walletName, updates) => {
     setWallets((prev) => {
@@ -548,6 +617,35 @@ function App() {
             </Button>
           </Box>
 
+          {/* Wallet Sorting Controls */}
+          {walletList.length > 1 && (
+            <Box sx={{ px: 2, py: 1, borderBottom: '1px solid rgba(255, 255, 255, 0.12)' }}>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                Sort by:
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  size="small"
+                  variant={sortMethod === 'name' ? 'contained' : 'outlined'}
+                  startIcon={<SortByAlpha />}
+                  onClick={() => handleSortChange('name')}
+                  sx={{ minWidth: 'auto', fontSize: '0.7rem' }}
+                >
+                  Name {sortMethod === 'name' && (sortDirection === 'asc' ? '↑' : '↓')}
+                </Button>
+                <Button
+                  size="small"
+                  variant={sortMethod === 'network' ? 'contained' : 'outlined'}
+                  startIcon={<NetworkCheck />}
+                  onClick={() => handleSortChange('network')}
+                  sx={{ minWidth: 'auto', fontSize: '0.7rem' }}
+                >
+                  Network {sortMethod === 'network' && (sortDirection === 'asc' ? '↑' : '↓')}
+                </Button>
+              </Box>
+            </Box>
+          )}
+
           {/* Wallet List */}
           <List sx={{ flexGrow: 1, px: 1 }}>
             {walletList.length === 0 ? (
@@ -559,44 +657,104 @@ function App() {
             ) : (
               walletList.map((wallet) => (
                 <ListItem key={wallet.name} disablePadding sx={{ mb: 1 }}>
-                  <ListItemButton
-                    selected={wallet.name === activeWalletName}
-                    onClick={() => handleWalletSelect(wallet.name)}
-                    sx={{
-                      borderRadius: 1,
-                      '&.Mui-selected': {
-                        bgcolor: 'primary.main',
-                        '&:hover': {
-                          bgcolor: 'primary.dark',
+                  {renamingWallet === wallet.name ? (
+                    // Rename mode
+                    <Box sx={{ width: '100%', p: 1, bgcolor: 'action.hover', borderRadius: 1 }}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        defaultValue={wallet.name}
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            handleRenameWallet(wallet.name, e.target.value);
+                          } else if (e.key === 'Escape') {
+                            setRenamingWallet(null);
+                          }
+                        }}
+                        InputProps={{
+                          endAdornment: (
+                            <Box sx={{ display: 'flex', gap: 0.5 }}>
+                              <IconButton
+                                size="small"
+                                onClick={(e) => {
+                                  const input = e.target.closest('.MuiTextField-root').querySelector('input');
+                                  handleRenameWallet(wallet.name, input.value);
+                                }}
+                              >
+                                <Check fontSize="small" />
+                              </IconButton>
+                              <IconButton
+                                size="small"
+                                onClick={() => setRenamingWallet(null)}
+                              >
+                                <Close fontSize="small" />
+                              </IconButton>
+                            </Box>
+                          )
+                        }}
+                      />
+                    </Box>
+                  ) : (
+                    // Normal mode
+                    <ListItemButton
+                      selected={wallet.name === activeWalletName}
+                      onClick={() => handleWalletSelect(wallet.name)}
+                      sx={{
+                        borderRadius: 1,
+                        '&.Mui-selected': {
+                          bgcolor: 'primary.main',
+                          '&:hover': {
+                            bgcolor: 'primary.dark',
+                          },
                         },
-                      },
-                    }}
-                  >
-                    <ListItemIcon>
-                      <AccountBalanceWallet />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={wallet.name}
-                      secondary={
-                        <Box>
-                          <Typography variant="caption" component="div">
-                            {wallet.address?.slice(0, 8)}...
-                          </Typography>
-                          <Box display="flex" alignItems="center" gap={0.5} mt={0.5}>
-                            <Chip
-                              label={wallet.network}
-                              size="small"
-                              color={wallet.network === 'mainnet' ? 'primary' : 'secondary'}
-                              variant="outlined"
-                            />
-                            <Typography variant="caption">
-                              {balances[wallet.name] || wallet.balance || '0'} XRP
+                        position: 'relative'
+                      }}
+                    >
+                      <ListItemIcon>
+                        <AccountBalanceWallet />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={wallet.name}
+                        secondary={
+                          <Box>
+                            <Typography variant="caption" component="div">
+                              {wallet.address?.slice(0, 8)}...
                             </Typography>
+                            <Box display="flex" alignItems="center" gap={0.5} mt={0.5}>
+                              <Chip
+                                label={wallet.network}
+                                size="small"
+                                color={wallet.network === 'mainnet' ? 'primary' : 'secondary'}
+                                variant="outlined"
+                              />
+                              <Typography variant="caption">
+                                {balances[wallet.name] || wallet.balance || '0'} XRP
+                              </Typography>
+                            </Box>
                           </Box>
-                        </Box>
-                      }
-                    />
-                  </ListItemButton>
+                        }
+                      />
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRenamingWallet(wallet.name);
+                        }}
+                        sx={{
+                          position: 'absolute',
+                          right: 8,
+                          top: 8,
+                          opacity: 0.7,
+                          '&:hover': {
+                            opacity: 1
+                          }
+                        }}
+                      >
+                        <Edit fontSize="small" />
+                      </IconButton>
+                    </ListItemButton>
+                  )}
                 </ListItem>
               ))
             )}
