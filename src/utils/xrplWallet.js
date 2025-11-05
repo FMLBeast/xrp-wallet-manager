@@ -283,12 +283,31 @@ export async function signAndSubmit(client, wallet, transaction) {
 
 /**
  * Format amount for display (drops to XRP)
+ * Handles both drops format (whole numbers) and XRP format (decimals)
  */
-export function formatAmount(drops) {
-  if (typeof drops === 'string' && drops !== '0') {
-    return dropsToXrp(drops);
+export function formatAmount(value) {
+  if (!value || value === '0') {
+    return value;
   }
-  return drops;
+
+  if (typeof value === 'string') {
+    // If the value contains a decimal point, it's already in XRP format
+    if (value.includes('.')) {
+      return value;
+    }
+
+    // If it's a whole number string, treat it as drops and convert to XRP
+    if (/^\d+$/.test(value)) {
+      try {
+        return dropsToXrp(value);
+      } catch (error) {
+        console.warn('Failed to convert drops to XRP:', value, error);
+        return value;
+      }
+    }
+  }
+
+  return value;
 }
 
 /**
