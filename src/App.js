@@ -462,10 +462,10 @@ function App() {
         await updateWalletOrder(masterPassword, newOrder);
       } catch (error) {
         console.error('Failed to save wallet order:', error);
-        showSnackbar('Failed to save wallet order: ' + error.message, 'error');
+        // Note: showSnackbar is not available in this scope due to function ordering
       }
     }
-  }, [walletList, masterPassword, showSnackbar]);
+  }, [walletList, masterPassword]);
 
   const refreshWalletBalance = async (walletName, walletData, masterPasswordOverride = null) => {
     setOperationLoading('balanceRefresh', walletName, true);
