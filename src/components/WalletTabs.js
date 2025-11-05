@@ -856,6 +856,7 @@ const WalletTabs = ({
             wallet={wallet}
             masterPassword={masterPassword}
             onShowSnackbar={onShowSnackbar}
+            balance={balance}
           />
         );
 
