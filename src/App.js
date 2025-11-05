@@ -50,7 +50,6 @@ import {
   History,
   Settings,
   Security,
-  NetworkCheck,
   Science,
   People,
   Edit,
@@ -62,7 +61,7 @@ import {
 import MasterPasswordDialog from './components/MasterPasswordDialog';
 import ImportWalletDialog from './components/ImportWalletDialog';
 import WalletTabs from './components/WalletTabs';
-import { walletsFileExists, loadWalletStorage, addWallet, setActiveWallet, resetWalletStorage, addAddressBookEntry, renameWallet, updateWalletOrder } from './utils/walletStorage';
+import { walletsFileExists, loadWalletStorage, addWallet, resetWalletStorage, addAddressBookEntry, renameWallet, updateWalletOrder } from './utils/walletStorage';
 import { calculateReserves } from './utils/xrplWallet';
 import { clearKey } from './utils/keyCache.js';
 
@@ -156,6 +155,21 @@ function App() {
     })
   );
 
+  // Helper functions for loading states
+  const setOperationLoading = useCallback((operation, key, isLoading) => {
+    setLoadingStates(prev => ({
+      ...prev,
+      [operation]: typeof key === 'string' ? {
+        ...prev[operation],
+        [key]: isLoading
+      } : isLoading
+    }));
+  }, []);
+
+  const showSnackbar = useCallback((message, severity = 'info') => {
+    setSnackbar({ open: true, message, severity });
+  }, []);
+
   const initializeApp = useCallback(async () => {
     try {
       const fileExists = await walletsFileExists();
@@ -172,14 +186,70 @@ function App() {
     } catch (error) {
       showSnackbar('Failed to initialize application: ' + error.message, 'error');
     }
-  }, []);
+  }, [showSnackbar]);
 
-  const handleRefreshBalance = () => {
+  const refreshWalletBalance = useCallback(async (walletName, walletData, masterPasswordOverride = null) => {
+    setOperationLoading('balanceRefresh', walletName, true);
+    setOperationLoading('networkConnection', walletName, true);
+
+    try {
+      const { createClient, getAccountInfo } = require('./utils/xrplWallet');
+      const client = createClient(walletData.network);
+
+      await client.connect();
+      setOperationLoading('networkConnection', walletName, false);
+      setOperationLoading('accountInfo', walletName, true);
+
+      const accountInfo = await getAccountInfo(client, walletData.address);
+      await client.disconnect();
+
+      if (accountInfo.success) {
+        const { formatAmount } = require('./utils/xrplWallet');
+        const balance = formatAmount(accountInfo.balance);
+
+        setBalances(prev => ({
+          ...prev,
+          [walletName]: balance
+        }));
+
+        // Update stored balance
+        const { updateWalletBalance } = require('./utils/walletStorage');
+        const passwordToUse = masterPasswordOverride || masterPassword;
+
+        if (!passwordToUse) {
+          console.warn(`No master password available for updating balance of ${walletName}`);
+          return;
+        }
+
+        await updateWalletBalance(passwordToUse, walletName, balance);
+
+        showSnackbar(`Balance updated for ${walletName}`, 'success');
+      }
+    } catch (error) {
+      console.error(`Failed to refresh balance for ${walletName}:`, error);
+      // Don't set balance to 'Error' - preserve the last known balance or fallback to wallet's stored balance
+      const currentBalance = balances[walletName] || wallets[walletName]?.balance || '0';
+      if (currentBalance === 'Error') {
+        // If the current balance is 'Error', reset it to the stored balance or '0'
+        setBalances(prev => ({
+          ...prev,
+          [walletName]: wallets[walletName]?.balance || '0'
+        }));
+      }
+      showSnackbar(`Failed to refresh balance for ${walletName}: ${error.message}`, 'error');
+    } finally {
+      setOperationLoading('balanceRefresh', walletName, false);
+      setOperationLoading('networkConnection', walletName, false);
+      setOperationLoading('accountInfo', walletName, false);
+    }
+  }, [balances, wallets, masterPassword, setOperationLoading, showSnackbar]);
+
+  const handleRefreshBalance = useCallback(() => {
     if (activeWalletName && wallets[activeWalletName]) {
       refreshWalletBalance(activeWalletName, wallets[activeWalletName]);
       showSnackbar('Refreshing balance...', 'info');
     }
-  };
+  }, [activeWalletName, wallets, refreshWalletBalance, showSnackbar]);
 
   const setupElectronMenuHandlers = useCallback(() => {
     if (window.electronAPI) {
@@ -467,80 +537,10 @@ function App() {
     }
   }, [walletList, masterPassword]);
 
-  const refreshWalletBalance = async (walletName, walletData, masterPasswordOverride = null) => {
-    setOperationLoading('balanceRefresh', walletName, true);
-    setOperationLoading('networkConnection', walletName, true);
-
-    try {
-      const { createClient, getAccountInfo } = require('./utils/xrplWallet');
-      const client = createClient(walletData.network);
-
-      await client.connect();
-      setOperationLoading('networkConnection', walletName, false);
-      setOperationLoading('accountInfo', walletName, true);
-
-      const accountInfo = await getAccountInfo(client, walletData.address);
-      await client.disconnect();
-
-      if (accountInfo.success) {
-        const { formatAmount } = require('./utils/xrplWallet');
-        const balance = formatAmount(accountInfo.balance);
-
-        setBalances(prev => ({
-          ...prev,
-          [walletName]: balance
-        }));
-
-        // Update stored balance
-        const { updateWalletBalance } = require('./utils/walletStorage');
-        const passwordToUse = masterPasswordOverride || masterPassword;
-
-        if (!passwordToUse) {
-          console.warn(`No master password available for updating balance of ${walletName}`);
-          return;
-        }
-
-        await updateWalletBalance(passwordToUse, walletName, balance);
-
-        showSnackbar(`Balance updated for ${walletName}`, 'success');
-      }
-    } catch (error) {
-      console.error(`Failed to refresh balance for ${walletName}:`, error);
-      // Don't set balance to 'Error' - preserve the last known balance or fallback to wallet's stored balance
-      const currentBalance = balances[walletName] || wallets[walletName]?.balance || '0';
-      if (currentBalance === 'Error') {
-        // If the current balance is 'Error', reset it to the stored balance or '0'
-        setBalances(prev => ({
-          ...prev,
-          [walletName]: wallets[walletName]?.balance || '0'
-        }));
-      }
-      showSnackbar(`Failed to refresh balance for ${walletName}: ${error.message}`, 'error');
-    } finally {
-      setOperationLoading('balanceRefresh', walletName, false);
-      setOperationLoading('networkConnection', walletName, false);
-      setOperationLoading('accountInfo', walletName, false);
-    }
-  };
-
-  const showSnackbar = (message, severity = 'info') => {
-    setSnackbar({ open: true, message, severity });
-  };
-
   const handleSnackbarClose = () => {
     setSnackbar({ ...snackbar, open: false });
   };
 
-  // Helper functions for loading states
-  const setOperationLoading = (operation, key, isLoading) => {
-    setLoadingStates(prev => ({
-      ...prev,
-      [operation]: typeof key === 'string' ? {
-        ...prev[operation],
-        [key]: isLoading
-      } : isLoading
-    }));
-  };
 
   const isOperationLoading = (operation, key = null) => {
     if (key === null) {

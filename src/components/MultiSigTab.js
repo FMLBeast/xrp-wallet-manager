@@ -41,8 +41,7 @@ import {
   Send,
   NotificationsActive,
   CheckCircle,
-  Schedule,
-  Warning
+  Schedule
 } from '@mui/icons-material';
 import { createClient, isValidAddress, calculateReserves, getAccountInfo } from '../utils/xrplWallet';
 import { Wallet } from 'xrpl';
@@ -423,113 +422,7 @@ export default function MultiSigTab({ wallet, onShowSnackbar, masterPassword, ba
     }
   };
 
-  const createMultiSigTransaction = async (transactionData) => {
-    try {
-      setLoading(true);
-      const client = createClient(wallet.network);
-      await client.connect();
 
-      // Create the transaction object
-      const transaction = {
-        TransactionType: transactionData.type || 'Payment',
-        Account: wallet.address,
-        Destination: transactionData.destination,
-        Amount: transactionData.amount,
-        Fee: '12', // Base fee
-        Sequence: transactionData.sequence,
-        Flags: transactionData.flags || 0,
-        LastLedgerSequence: transactionData.lastLedgerSequence,
-        Signers: [] // Will be populated with signatures
-      };
-
-      // Add memo if provided
-      if (transactionData.memo) {
-        transaction.Memos = [{
-          Memo: {
-            MemoType: Buffer.from('Description').toString('hex'),
-            MemoData: Buffer.from(transactionData.memo).toString('hex')
-          }
-        }];
-      }
-
-      // Prepare the transaction
-      const prepared = await client.autofill(transaction);
-
-      // Create pending transaction entry
-      const pendingTx = {
-        id: `pending_${Date.now()}`,
-        transaction: prepared,
-        created: new Date().toISOString(),
-        requiredSignatures: transactionData.requiredSignatures || 2,
-        signatures: [],
-        status: 'pending'
-      };
-
-      // Save to pending transactions
-      const newPending = [...pendingTransactions, pendingTx];
-      savePendingTransactions(newPending);
-
-      await client.disconnect();
-      onShowSnackbar('Multi-sig transaction created successfully. Awaiting signatures.', 'success');
-      setShowCreateDialog(false);
-
-    } catch (error) {
-      console.error('Failed to create multi-sig transaction:', error);
-      onShowSnackbar(`Failed to create transaction: ${error.message}`, 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const signPendingTransaction = async (transactionId, privateKey) => {
-    try {
-      setLoading(true);
-      const pendingTx = pendingTransactions.find(tx => tx.id === transactionId);
-      if (!pendingTx) {
-        throw new Error('Transaction not found');
-      }
-
-      // Sign the transaction
-      const { Wallet } = require('xrpl');
-      const signerWallet = Wallet.fromSeed(privateKey);
-      const signed = signerWallet.sign(pendingTx.transaction);
-
-      // Add signature to the transaction
-      const signature = {
-        account: signerWallet.address,
-        signature: signed.tx_blob,
-        publicKey: signerWallet.publicKey,
-        timestamp: new Date().toISOString()
-      };
-
-      // Update pending transaction with new signature
-      const updatedPending = pendingTransactions.map(tx => {
-        if (tx.id === transactionId) {
-          return {
-            ...tx,
-            signatures: [...tx.signatures, signature],
-            status: tx.signatures.length + 1 >= tx.requiredSignatures ? 'ready' : 'pending'
-          };
-        }
-        return tx;
-      });
-
-      savePendingTransactions(updatedPending);
-      onShowSnackbar('Transaction signed successfully', 'success');
-
-      // If we have enough signatures, show submit option
-      const updatedTx = updatedPending.find(tx => tx.id === transactionId);
-      if (updatedTx && updatedTx.status === 'ready') {
-        onShowSnackbar('Transaction has enough signatures and is ready for submission!', 'info');
-      }
-
-    } catch (error) {
-      console.error('Failed to sign transaction:', error);
-      onShowSnackbar(`Failed to sign transaction: ${error.message}`, 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (!wallet) {
     return (
