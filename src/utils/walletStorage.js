@@ -32,7 +32,8 @@ function createEmptyStorage() {
   return {
     wallets: {},
     active_wallet: null,
-    address_book: []
+    address_book: [],
+    wallet_order: []
   };
 }
 
@@ -87,7 +88,8 @@ export async function loadWalletStorage(masterPassword) {
     return {
       wallets: walletData.wallets || {},
       active_wallet: walletData.active_wallet || null,
-      address_book: walletData.address_book || []
+      address_book: walletData.address_book || [],
+      wallet_order: walletData.wallet_order || []
     };
   } catch (error) {
     console.error('loadWalletStorage error details:', error);
@@ -492,6 +494,18 @@ export async function resetWalletStorage() {
   } catch (error) {
     throw new Error(`Failed to reset wallet storage: ${error.message}`);
   }
+}
+
+/**
+ * Update wallet order
+ */
+export async function updateWalletOrder(masterPassword, walletOrder) {
+  const storage = await loadWalletStorage(masterPassword);
+
+  storage.wallet_order = walletOrder || [];
+
+  await saveWalletStorage(masterPassword, storage);
+  return storage;
 }
 
 /**

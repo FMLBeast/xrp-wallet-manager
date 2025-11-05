@@ -62,7 +62,7 @@ import {
 import MasterPasswordDialog from './components/MasterPasswordDialog';
 import ImportWalletDialog from './components/ImportWalletDialog';
 import WalletTabs from './components/WalletTabs';
-import { walletsFileExists, loadWalletStorage, addWallet, setActiveWallet, resetWalletStorage, addAddressBookEntry, renameWallet } from './utils/walletStorage';
+import { walletsFileExists, loadWalletStorage, addWallet, setActiveWallet, resetWalletStorage, addAddressBookEntry, renameWallet, updateWalletOrder } from './utils/walletStorage';
 import { calculateReserves } from './utils/xrplWallet';
 import { clearKey } from './utils/keyCache.js';
 
@@ -270,6 +270,7 @@ function App() {
         setWallets(storage.wallets || {});
         setActiveWalletName(storage.active_wallet);
         setAddressBook(storage.address_book || []);
+        setCustomWalletOrder(storage.wallet_order || []);
 
         // Clean up any existing "Error" balance states and initialize balances
         const initialBalances = {};
@@ -446,7 +447,7 @@ function App() {
     return walletArray;
   }, [wallets, customWalletOrder]);
 
-  const handleDragEnd = useCallback((event) => {
+  const handleDragEnd = useCallback(async (event) => {
     const { active, over } = event;
 
     if (active.id !== over?.id) {
@@ -455,8 +456,16 @@ function App() {
 
       const newOrder = arrayMove(walletList, oldIndex, newIndex).map(wallet => wallet.name);
       setCustomWalletOrder(newOrder);
+
+      // Persist the new order to storage
+      try {
+        await updateWalletOrder(masterPassword, newOrder);
+      } catch (error) {
+        console.error('Failed to save wallet order:', error);
+        showSnackbar('Failed to save wallet order: ' + error.message, 'error');
+      }
     }
-  }, [walletList]);
+  }, [walletList, masterPassword, showSnackbar]);
 
   const refreshWalletBalance = async (walletName, walletData, masterPasswordOverride = null) => {
     setOperationLoading('balanceRefresh', walletName, true);
@@ -818,7 +827,7 @@ function App() {
                   <Chip
                     icon={isOperationLoading('networkConnection', activeWallet.name) ?
                       <CircularProgress size={16} /> :
-                      (activeWallet.network === 'testnet' ? <Science /> : <NetworkCheck />)}
+                      (activeWallet.network === 'testnet' ? <Science /> : <AccountBalanceWallet />)}
                     label={isOperationLoading('networkConnection', activeWallet.name) ?
                       'Connecting...' : activeWallet.network}
                     color={activeWallet.network === 'mainnet' ? 'success' : 'warning'}
