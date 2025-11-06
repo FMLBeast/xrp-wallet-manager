@@ -65,8 +65,8 @@ import { walletsFileExists, loadWalletStorage, addWallet, resetWalletStorage, ad
 import { calculateReserves, createClient, getAccountInfo, formatAmount } from './utils/xrplWallet';
 import { clearKey } from './utils/keyCache.js';
 
-// Sortable Wallet Item Component
-function SortableWalletItem({ wallet, children, isDragDisabled = false }) {
+// Optimized Sortable Wallet Item Component
+const SortableWalletItem = React.memo(function SortableWalletItem({ wallet, children, isDragDisabled = false }) {
   const {
     attributes,
     listeners,
@@ -76,18 +76,19 @@ function SortableWalletItem({ wallet, children, isDragDisabled = false }) {
     isDragging,
   } = useSortable({ id: wallet.name, disabled: isDragDisabled });
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
+  // Memoize style object to prevent recreation during drag
+  const style = useMemo(() => ({
+    transform: transform ? CSS.Transform.toString(transform) : undefined,
     transition,
     opacity: isDragging ? 0.5 : 1,
-  };
+  }), [transform, transition, isDragging]);
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       {children}
     </div>
   );
-}
+});
 
 const theme = createTheme({
   palette: {
@@ -147,9 +148,13 @@ function App() {
   const [renamingWallet, setRenamingWallet] = useState(null);
   const [editMode, setEditMode] = useState(false); // Controls visibility of edit icons
 
-  // Drag and drop sensors
+  // Optimized drag and drop sensors
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Require 8px movement to start drag
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -513,7 +518,7 @@ function App() {
     return walletArray;
   }, [wallets, customWalletOrder]);
 
-  const handleDragEnd = useCallback(async (event) => {
+  const handleDragEnd = useCallback((event) => {
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
@@ -521,15 +526,20 @@ function App() {
       const newIndex = walletList.findIndex(wallet => wallet.name === over.id);
 
       const newOrder = arrayMove(walletList, oldIndex, newIndex).map(wallet => wallet.name);
+
+      // Update UI immediately for responsiveness
       setCustomWalletOrder(newOrder);
 
-      // Persist the new order to storage
-      try {
-        await updateWalletOrder(masterPassword, newOrder);
-      } catch (error) {
-        console.error('Failed to save wallet order:', error);
-        // Note: showSnackbar is not available in this scope due to function ordering
-      }
+      // Defer storage persistence to avoid blocking drag operation
+      setTimeout(async () => {
+        try {
+          await updateWalletOrder(masterPassword, newOrder);
+        } catch (error) {
+          console.error('Failed to save wallet order:', error);
+          // Revert order on failure
+          setCustomWalletOrder(prev => walletList.map(wallet => wallet.name));
+        }
+      }, 0);
     }
   }, [walletList, masterPassword]);
 
