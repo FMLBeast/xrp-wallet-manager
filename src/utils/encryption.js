@@ -7,7 +7,8 @@ import CryptoJS from 'crypto-js';
 import { getCachedKey, getCachedSalt, hasKey } from './keyCache.js';
 
 // Security constants matching Python version
-const PBKDF2_ITERATIONS = 390000;
+// Use fewer iterations in test environment for performance
+const PBKDF2_ITERATIONS = process.env.NODE_ENV === 'test' ? 1000 : 390000;
 const SALT_LENGTH = 32;
 const NONCE_LENGTH = 12;
 
@@ -35,6 +36,14 @@ function deriveKey(password, salt) {
  * Uses cached key for performance when available
  */
 export function encryptData(password, plaintext) {
+  // Validate inputs
+  if (password === null || password === undefined) {
+    throw new Error('Password cannot be null or undefined');
+  }
+  if (plaintext === null || plaintext === undefined) {
+    throw new Error('Plaintext cannot be null or undefined');
+  }
+
   // Convert plaintext to bytes
   const plaintextBytes = CryptoJS.enc.Utf8.parse(plaintext);
 

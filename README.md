@@ -4,25 +4,25 @@
 
 **A secure, professional XRP Ledger wallet built with Electron and React**
 
-[![Build & Release](https://github.com/YOURUSERNAME/xrp_wallet_manager/actions/workflows/build-release.yml/badge.svg)](https://github.com/YOURUSERNAME/xrp_wallet_manager/actions/workflows/build-release.yml)
-[![PR Build & Test](https://github.com/YOURUSERNAME/xrp_wallet_manager/actions/workflows/pr-build.yml/badge.svg)](https://github.com/YOURUSERNAME/xrp_wallet_manager/actions/workflows/pr-build.yml)
-[![GitHub release (latest by date)](https://img.shields.io/github/v/release/YOURUSERNAME/xrp_wallet_manager)](https://github.com/YOURUSERNAME/xrp_wallet_manager/releases/latest)
+[![Build & Release](https://github.com/FMLBeast/xrp-wallet-manager/actions/workflows/build-release.yml/badge.svg)](https://github.com/FMLBeast/xrp-wallet-manager/actions/workflows/build-release.yml)
+[![PR Build & Test](https://github.com/FMLBeast/xrp-wallet-manager/actions/workflows/pr-build.yml/badge.svg)](https://github.com/FMLBeast/xrp-wallet-manager/actions/workflows/pr-build.yml)
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/FMLBeast/xrp-wallet-manager)](https://github.com/FMLBeast/xrp-wallet-manager/releases/latest)
 
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
 ![License](https://img.shields.io/badge/license-MIT-green)
-[![GitHub downloads](https://img.shields.io/github/downloads/YOURUSERNAME/xrp_wallet_manager/total)](https://github.com/YOURUSERNAME/xrp_wallet_manager/releases)
+[![GitHub downloads](https://img.shields.io/github/downloads/FMLBeast/xrp-wallet-manager/total)](https://github.com/FMLBeast/xrp-wallet-manager/releases)
 
 </div>
 
 ## 📦 Download
 
-[![Download Latest](https://img.shields.io/badge/Download-Latest%20Release-blue?style=for-the-badge)](https://github.com/YOURUSERNAME/xrp_wallet_manager/releases/latest)
+[![Download Latest](https://img.shields.io/badge/Download-Latest%20Release-blue?style=for-the-badge)](https://github.com/FMLBeast/xrp-wallet-manager/releases/latest)
 
 | Platform | Download | Notes |
 |----------|----------|-------|
-| **Windows** | [Setup.exe](https://github.com/YOURUSERNAME/xrp_wallet_manager/releases/latest) | Installer + Portable |
-| **macOS** | [.dmg](https://github.com/YOURUSERNAME/xrp_wallet_manager/releases/latest) | Universal (Intel + Apple Silicon) |
-| **Linux** | [.deb](https://github.com/YOURUSERNAME/xrp_wallet_manager/releases/latest) / [.AppImage](https://github.com/YOURUSERNAME/xrp_wallet_manager/releases/latest) | Ubuntu/Debian + Universal |
+| **Windows** | [Setup.exe](https://github.com/FMLBeast/xrp-wallet-manager/releases/latest) | Installer + Portable |
+| **macOS** | [.dmg](https://github.com/FMLBeast/xrp-wallet-manager/releases/latest) | Universal (Intel + Apple Silicon) |
+| **Linux** | [.deb](https://github.com/FMLBeast/xrp-wallet-manager/releases/latest) / [.AppImage](https://github.com/FMLBeast/xrp-wallet-manager/releases/latest) | Ubuntu/Debian + Universal |
 
 ## ✨ Features
 
@@ -76,7 +76,7 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOURUSERNAME/xrp_wallet_manager.git
+git clone https://github.com/FMLBeast/xrp-wallet-manager.git
 cd xrp_wallet_manager
 
 # Install dependencies
@@ -162,6 +162,85 @@ npm run dist
 # macOS: dist-electron/*.dmg, *.zip
 # Windows: dist-electron/*.exe, *.msi
 # Linux: dist-electron/*.deb, *.AppImage, *.rpm
+```
+
+### Linux Build Requirements
+
+For building on Linux systems, ensure you have the following dependencies installed:
+
+**Ubuntu/Debian:**
+```bash
+# Install Node.js 18+ and npm
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# Install build dependencies for native modules
+sudo apt-get install -y build-essential libnss3-dev libatk-bridge2.0-dev \
+  libdrm2 libxcomposite1 libxdamage1 libxrandr2 libgbm1 \
+  libxss1 libasound2-dev
+
+# For .deb package creation
+sudo apt-get install -y fakeroot dpkg
+```
+
+**CentOS/RHEL/Fedora:**
+```bash
+# Install Node.js 18+ and npm
+sudo dnf install nodejs npm
+
+# Install build dependencies
+sudo dnf groupinstall "Development Tools"
+sudo dnf install nss-devel atk-devel at-spi2-atk-devel \
+  libdrm-devel libXcomposite-devel libXdamage-devel \
+  libXrandr-devel mesa-libgbm-devel libXScrnSaver-devel \
+  alsa-lib-devel
+
+# For .rpm package creation
+sudo dnf install rpm-build
+```
+
+**Arch Linux:**
+```bash
+# Install Node.js and npm
+sudo pacman -S nodejs npm
+
+# Install build dependencies
+sudo pacman -S base-devel nss atk at-spi2-atk libdrm \
+  libxcomposite libxdamage libxrandr mesa libxss alsa-lib
+```
+
+### Linux Installation Options
+
+**Option 1: .deb Package (Ubuntu/Debian)**
+```bash
+# Download from releases page or use GitHub CLI
+gh release download --pattern "*.deb"
+sudo dpkg -i xrp-wallet-manager_*.deb
+
+# Fix dependencies if needed
+sudo apt-get install -f
+```
+
+**Option 2: .AppImage (Universal)**
+```bash
+# Download AppImage
+gh release download --pattern "*.AppImage"
+chmod +x xrp-wallet-manager*.AppImage
+
+# Run directly
+./xrp-wallet-manager*.AppImage
+
+# Optional: Install to applications menu
+./xrp-wallet-manager*.AppImage --appimage-install
+```
+
+**Option 3: .rpm Package (CentOS/RHEL/Fedora)**
+```bash
+# Download and install
+gh release download --pattern "*.rpm"
+sudo rpm -i xrp-wallet-manager-*.rpm
+# or
+sudo dnf install xrp-wallet-manager-*.rpm
 ```
 
 ### Code Signing
@@ -327,8 +406,8 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## 📞 Support
 
-- **Bug Reports**: [GitHub Issues](https://github.com/YOURUSERNAME/xrp_wallet_manager/issues)
-- **Feature Requests**: [GitHub Discussions](https://github.com/YOURUSERNAME/xrp_wallet_manager/discussions)
+- **Bug Reports**: [GitHub Issues](https://github.com/FMLBeast/xrp-wallet-manager/issues)
+- **Feature Requests**: [GitHub Discussions](https://github.com/FMLBeast/xrp-wallet-manager/discussions)
 - **Security Issues**: Email security@yourmail.com (not public issues)
 
 ## ⚠️ Disclaimer
@@ -347,7 +426,5 @@ This software is provided "as is" without warranty of any kind. Users are respon
 <div align="center">
 
 **Made with ❤️ for the XRP Ledger community**
-
-*Replace `YOURUSERNAME` with your GitHub username*
 
 </div>
