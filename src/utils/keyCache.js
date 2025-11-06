@@ -3,35 +3,25 @@
  * Caches the derived encryption key to avoid expensive PBKDF2 operations
  */
 
-import CryptoJS from 'crypto-js';
+import { deriveKeyAsync } from './pbkdf2Worker.js';
 
-// Security constants matching encryption.js
-const PBKDF2_ITERATIONS = 390000;
+// PBKDF2 operations now handled in Web Worker
 
 // In-memory key cache
 let cachedKey = null;
 let cachedSalt = null;
 
-/**
- * Derive key from password using PBKDF2-SHA256
- */
-function deriveKey(password, salt) {
-  return CryptoJS.PBKDF2(password, salt, {
-    keySize: 256 / 32,
-    iterations: PBKDF2_ITERATIONS,
-    hasher: CryptoJS.algo.SHA256
-  });
-}
+// Old synchronous deriveKey function removed - now using async Web Worker version
 
 /**
  * Cache the derived key for the current session
  * This avoids expensive PBKDF2 operations on every wallet operation
  */
-export function cacheKey(password, salt) {
-  console.log('[KeyCache] Deriving and caching encryption key...');
+export async function cacheKey(password, salt) {
+  console.log('[KeyCache] Deriving and caching encryption key using Web Worker...');
   const startTime = Date.now();
 
-  cachedKey = deriveKey(password, salt);
+  cachedKey = await deriveKeyAsync(password, salt);
   cachedSalt = salt;
 
   const derivationTime = Date.now() - startTime;
@@ -74,11 +64,11 @@ export function clearKey() {
  * Verify that the cached key matches the provided password
  * This is used to ensure cache integrity
  */
-export function verifyCachedKey(password) {
+export async function verifyCachedKey(password) {
   if (!hasKey() || !cachedSalt) {
     return false;
   }
 
-  const testKey = deriveKey(password, cachedSalt);
+  const testKey = await deriveKeyAsync(password, cachedSalt);
   return testKey.toString() === cachedKey.toString();
 }

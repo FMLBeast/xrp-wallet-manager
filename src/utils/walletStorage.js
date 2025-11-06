@@ -66,17 +66,17 @@ export async function loadWalletStorage(masterPassword) {
 
     if (envelope.version === STORAGE_VERSION) {
       // New Electron format
-      decryptedJson = decryptData(masterPassword, envelope);
+      decryptedJson = await decryptData(masterPassword, envelope);
 
       // Cache the encryption key for performance after successful decryption
       if (envelope.salt) {
         const salt = CryptoJS.enc.Hex.parse(envelope.salt);
-        cacheKey(masterPassword, salt);
+        await cacheKey(masterPassword, salt);
       }
     } else {
       // Legacy Python format or old version - try Python compatibility
       console.log('Detected legacy wallet format, attempting Python compatibility mode');
-      decryptedJson = decryptPythonWalletData(masterPassword, envelope);
+      decryptedJson = await decryptPythonWalletData(masterPassword, envelope);
 
       // If successful, this will be migrated to new format on next save
       console.log('Successfully decrypted legacy wallet, will migrate format on next save');
@@ -117,7 +117,7 @@ export async function saveWalletStorage(masterPassword, walletData) {
 
   try {
     const jsonData = JSON.stringify(walletData, null, 2);
-    const envelope = encryptData(masterPassword, jsonData);
+    const envelope = await encryptData(masterPassword, jsonData);
 
     // Add version to envelope
     envelope.version = STORAGE_VERSION;

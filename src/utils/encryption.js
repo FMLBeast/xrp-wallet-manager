@@ -4,11 +4,11 @@
  */
 
 import CryptoJS from 'crypto-js';
-import { getCachedKey, getCachedSalt, hasKey } from './keyCache.js';
+import { getCachedKey, getCachedSalt, hasKey, cacheKey } from './keyCache.js';
+import { deriveKeyAsync } from './pbkdf2Worker.js';
 
 // Security constants matching Python version
-// Use fewer iterations in test environment for performance
-const PBKDF2_ITERATIONS = process.env.NODE_ENV === 'test' ? 1000 : 390000;
+// PBKDF2 iterations now handled in Web Worker
 const SALT_LENGTH = 32;
 const NONCE_LENGTH = 12;
 
@@ -19,23 +19,14 @@ function generateRandomBytes(length) {
   return CryptoJS.lib.WordArray.random(length);
 }
 
-/**
- * Derive key from password using PBKDF2-SHA256
- */
-function deriveKey(password, salt) {
-  return CryptoJS.PBKDF2(password, salt, {
-    keySize: 256 / 32,
-    iterations: PBKDF2_ITERATIONS,
-    hasher: CryptoJS.algo.SHA256
-  });
-}
+// Old synchronous deriveKey function removed - now using async Web Worker version
 
 /**
  * Encrypt data using HMAC-based stream cipher
  * Matches the Python version's encryption scheme
  * Uses cached key for performance when available
  */
-export function encryptData(password, plaintext) {
+export async function encryptData(password, plaintext) {
   // Validate inputs
   if (password === null || password === undefined) {
     throw new Error('Password cannot be null or undefined');
@@ -50,20 +41,27 @@ export function encryptData(password, plaintext) {
   let key, salt;
 
   // Use cached key for performance if available
-  if (hasKey()) {
-    console.log('[Encrypt] Using cached encryption key');
+  if (hasKey() && getCachedSalt()) {
+    console.log('[Encrypt] Using cached encryption key and salt for performance');
     key = getCachedKey();
     salt = getCachedSalt();
   } else {
-    // Fallback to password-based key derivation
-    console.log('[Encrypt] No cached key, deriving from password...');
+    // Fallback to password-based key derivation using Web Worker
+    console.log('[Encrypt] No cached key, deriving from password using Web Worker...');
+    console.log('[Encrypt] This will run asynchronously to prevent UI blocking');
     console.log('[Encrypt] Password length:', password.length);
     console.log('[Encrypt] Has leading space:', password[0] === ' ');
     console.log('[Encrypt] Has trailing space:', password[password.length - 1] === ' ');
 
-    // Generate random salt and derive key
+    // Generate random salt and derive key asynchronously
     salt = generateRandomBytes(SALT_LENGTH);
-    key = deriveKey(password, salt);
+    const startTime = Date.now();
+    key = await deriveKeyAsync(password, salt);
+    const derivationTime = Date.now() - startTime;
+    console.log(`[Encrypt] PBKDF2 key derivation took ${derivationTime}ms (${(derivationTime/1000).toFixed(1)}s)`);
+
+    // Cache the derived key to avoid future delays
+    await cacheKey(password, salt);
   }
 
   // Generate random nonce
@@ -107,7 +105,7 @@ export function encryptData(password, plaintext) {
  * Decrypt data using HMAC-based stream cipher
  * Matches the Python version's decryption scheme
  */
-export function decryptData(password, envelope) {
+export async function decryptData(password, envelope) {
   try {
     // Parse envelope components
     const salt = CryptoJS.enc.Hex.parse(envelope.salt);
@@ -122,13 +120,13 @@ export function decryptData(password, envelope) {
       console.log('[Decrypt] Using cached encryption key');
       key = getCachedKey();
     } else {
-      // Fallback to password-based key derivation
-      console.log('[Decrypt] Deriving key from password (salt mismatch or no cache)...');
+      // Fallback to password-based key derivation using Web Worker
+      console.log('[Decrypt] Deriving key from password using Web Worker (salt mismatch or no cache)...');
       console.log('[Decrypt] Password length:', password.length);
       console.log('[Decrypt] Has leading space:', password[0] === ' ');
       console.log('[Decrypt] Has trailing space:', password[password.length - 1] === ' ');
 
-      key = deriveKey(password, salt);
+      key = await deriveKeyAsync(password, salt);
     }
 
     // Verify MAC using manual hex concatenation for consistency
@@ -187,10 +185,10 @@ export function decryptData(password, envelope) {
 /**
  * Decrypt data from Python wallet format with fallback compatibility
  */
-export function decryptPythonWalletData(password, envelope) {
+export async function decryptPythonWalletData(password, envelope) {
   // First try the standard decryption
   try {
-    return decryptData(password, envelope);
+    return await decryptData(password, envelope);
   } catch (error) {
     console.log('Standard decryption failed, trying Python compatibility mode:', error.message);
 
@@ -201,12 +199,8 @@ export function decryptPythonWalletData(password, envelope) {
       const ciphertext = CryptoJS.enc.Hex.parse(envelope.ciphertext);
       const providedMac = envelope.mac;
 
-      // Try different PBKDF2 parameters that might match Python
-      const keyAlt = CryptoJS.PBKDF2(password, salt, {
-        keySize: 256 / 32,
-        iterations: PBKDF2_ITERATIONS,
-        hasher: CryptoJS.algo.SHA256
-      });
+      // Try different PBKDF2 parameters that might match Python using Web Worker
+      const keyAlt = await deriveKeyAsync(password, salt);
 
       // Verify MAC with alternative approach
       const macDataAlt = salt.toString() + nonce.toString() + ciphertext.toString();
