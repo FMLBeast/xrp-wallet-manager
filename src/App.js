@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -148,6 +148,9 @@ function App() {
   const [renamingWallet, setRenamingWallet] = useState(null);
   const [editMode, setEditMode] = useState(false); // Controls visibility of edit icons
 
+  // Debouncing ref for wallet selection to prevent rapid click cascading
+  const walletSelectTimeoutRef = useRef(null);
+
   // Optimized drag and drop sensors
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -197,15 +200,38 @@ function App() {
     setOperationLoading('balanceRefresh', walletName, true);
     setOperationLoading('networkConnection', walletName, true);
 
-    try {
-      const client = createClient(walletData.network);
+    const client = createClient(walletData.network);
 
-      await client.connect();
+    try {
+      // Add timeout to prevent hanging on slow/offline network endpoints
+      console.log(`[Performance] Starting balance refresh for ${walletName} with 8-second timeout`);
+
+      // Connect with 5-second timeout
+      await Promise.race([
+        client.connect(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Connection timeout after 5 seconds')), 5000)
+        )
+      ]);
+
       setOperationLoading('networkConnection', walletName, false);
       setOperationLoading('accountInfo', walletName, true);
 
-      const accountInfo = await getAccountInfo(client, walletData.address);
-      await client.disconnect();
+      // Account info request with 3-second timeout
+      const accountInfo = await Promise.race([
+        getAccountInfo(client, walletData.address),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Account info timeout after 3 seconds')), 3000)
+        )
+      ]);
+
+      // Disconnect with timeout (less critical but prevents edge case hangs)
+      await Promise.race([
+        client.disconnect(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Disconnect timeout after 2 seconds')), 2000)
+        )
+      ]);
 
       if (accountInfo.success) {
         const balance = formatAmount(accountInfo.balance);
@@ -356,10 +382,30 @@ function App() {
 
         showSnackbar('Wallets unlocked successfully!', 'success');
 
-        // Refresh balances for all wallets
-        Object.keys(storage.wallets || {}).forEach(walletName => {
-          refreshWalletBalance(walletName, storage.wallets[walletName], password);
-        });
+        // Refresh balances in parallel - Web Worker now prevents UI blocking during encryption
+        setTimeout(() => {
+          console.log('[Performance] Starting parallel balance refresh for all wallets');
+          const walletNames = Object.keys(storage.wallets || {});
+
+          // Refresh all balances in parallel for much faster startup
+          // Web Worker handles PBKDF2 operations async, so no UI blocking
+          const refreshPromises = walletNames.map(walletName =>
+            refreshWalletBalance(walletName, storage.wallets[walletName], password)
+              .catch(error => {
+                console.error(`[Performance] Failed to refresh balance for ${walletName}:`, error);
+                // Don't throw to avoid stopping other wallet refreshes
+                return null;
+              })
+          );
+
+          // Wait for all balance refreshes to complete (or fail gracefully)
+          Promise.all(refreshPromises).then(results => {
+            const successful = results.filter(result => result !== null).length;
+            console.log(`[Performance] Parallel balance refresh completed: ${successful}/${walletNames.length} wallets updated`);
+          }).catch(error => {
+            console.warn('[Performance] Some wallet balance refreshes failed:', error);
+          });
+        }, 300); // Reduced delay since no blocking operations
       }
     } catch (error) {
       setPasswordDialogError(error.message);
@@ -466,9 +512,17 @@ function App() {
   };
 
   const handleWalletSelect = (walletName) => {
-    // Instant wallet switching - no persistence needed for UI state
-    setActiveWalletName(walletName);
-    showSnackbar(`Switched to wallet '${walletName}'`, 'info');
+    // Clear any pending wallet selection to prevent rapid clicking cascade
+    if (walletSelectTimeoutRef.current) {
+      clearTimeout(walletSelectTimeoutRef.current);
+    }
+
+    // Debounce wallet selection to prevent performance issues from rapid clicks
+    walletSelectTimeoutRef.current = setTimeout(() => {
+      console.log('[Performance] Debounced wallet selection:', walletName);
+      setActiveWalletName(walletName);
+      showSnackbar(`Switched to wallet '${walletName}'`, 'info');
+    }, 300); // 300ms debounce - prevents cascade operations while keeping UI responsive
   };
 
   const handleRenameWallet = async (oldName, newName) => {
@@ -527,21 +581,10 @@ function App() {
 
       const newOrder = arrayMove(walletList, oldIndex, newIndex).map(wallet => wallet.name);
 
-      // Update UI immediately for responsiveness
+      // Only update UI state - save will happen when exiting lock mode
       setCustomWalletOrder(newOrder);
-
-      // Defer storage persistence to avoid blocking drag operation
-      setTimeout(async () => {
-        try {
-          await updateWalletOrder(masterPassword, newOrder);
-        } catch (error) {
-          console.error('Failed to save wallet order:', error);
-          // Revert order on failure
-          setCustomWalletOrder(prev => walletList.map(wallet => wallet.name));
-        }
-      }, 0);
     }
-  }, [walletList, masterPassword]);
+  }, [walletList]);
 
   const handleSnackbarClose = () => {
     setSnackbar({ ...snackbar, open: false });
@@ -652,7 +695,21 @@ function App() {
                 fullWidth
                 variant={editMode ? "contained" : "outlined"}
                 startIcon={editMode ? <LockOpen /> : <Lock />}
-                onClick={() => setEditMode(!editMode)}
+                onClick={async () => {
+                  const newEditMode = !editMode;
+
+                  // Save wallet order when exiting edit mode
+                  if (editMode && !newEditMode && customWalletOrder.length > 0) {
+                    try {
+                      await updateWalletOrder(masterPassword, customWalletOrder);
+                    } catch (error) {
+                      console.error('Failed to save wallet order:', error);
+                      showSnackbar('Failed to save wallet order', 'error');
+                    }
+                  }
+
+                  setEditMode(newEditMode);
+                }}
                 size="small"
                 sx={{
                   mb: 1,
