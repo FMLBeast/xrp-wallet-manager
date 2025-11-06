@@ -270,7 +270,7 @@ function App() {
       setOperationLoading('networkConnection', walletName, false);
       setOperationLoading('accountInfo', walletName, false);
     }
-  }, [balances, wallets, masterPassword, setOperationLoading, showSnackbar]);
+  }, [masterPassword, setOperationLoading, showSnackbar]);
 
   const handleRefreshBalance = useCallback(() => {
     if (activeWalletName && wallets[activeWalletName]) {
@@ -700,11 +700,16 @@ function App() {
 
                   // Save wallet order when exiting edit mode
                   if (editMode && !newEditMode && customWalletOrder.length > 0) {
-                    try {
-                      await updateWalletOrder(masterPassword, customWalletOrder);
-                    } catch (error) {
-                      console.error('Failed to save wallet order:', error);
-                      showSnackbar('Failed to save wallet order', 'error');
+                    if (masterPassword) {
+                      try {
+                        await updateWalletOrder(masterPassword, customWalletOrder);
+                      } catch (error) {
+                        console.error('Failed to save wallet order:', error);
+                        showSnackbar('Failed to save wallet order', 'error');
+                      }
+                    } else {
+                      console.warn('Cannot save wallet order: master password not available');
+                      showSnackbar('Cannot save wallet order: session expired', 'warning');
                     }
                   }
 

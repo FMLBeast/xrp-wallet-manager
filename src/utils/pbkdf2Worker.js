@@ -89,11 +89,11 @@ class PBKDF2WorkerManager {
       // Store the promise callbacks
       this.pendingRequests.set(id, { resolve, reject });
 
-      // Set timeout for the operation (30 seconds max)
+      // Set timeout for the operation (10 seconds max)
       const timeout = setTimeout(() => {
         this.pendingRequests.delete(id);
-        reject(new Error('PBKDF2 derivation timeout after 30 seconds'));
-      }, 30000);
+        reject(new Error('PBKDF2 derivation timeout after 10 seconds'));
+      }, 10000);
 
       // Override resolve to clear timeout
       const originalResolve = resolve;
@@ -183,7 +183,7 @@ export async function deriveKeyAsync(password, salt) {
   const startTime = Date.now();
   const key = CryptoJS.PBKDF2(password, salt, {
     keySize: 256 / 32,
-    iterations: 390000,
+    iterations: 150000,
     hasher: CryptoJS.algo.SHA256
   });
   const derivationTime = Date.now() - startTime;

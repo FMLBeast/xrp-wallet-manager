@@ -7,7 +7,7 @@
 importScripts('https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js');
 
 // Security constants
-const PBKDF2_ITERATIONS = 390000;
+const PBKDF2_ITERATIONS = 150000;
 
 /**
  * Derive key from password using PBKDF2-SHA256
