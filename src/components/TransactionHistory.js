@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import {
   Box,
   Card,
@@ -34,7 +34,127 @@ import {
 } from '@mui/icons-material';
 import { formatAmount, getExplorerUrl, createClient } from '../utils/xrplWallet';
 
-export default function TransactionHistory({
+// Memoized TransactionRow component for optimal rendering performance
+const TransactionRow = memo(({
+  tx,
+  walletAddress,
+  onViewInExplorer,
+  formatDate,
+  getStatusColor
+}) => {
+  // Calculate transaction properties
+  const getTransactionDirection = (tx) => {
+    if (tx.account === walletAddress) return 'outgoing';
+    if (tx.destination === walletAddress) return 'incoming';
+    return 'other';
+  };
+
+  const getTransactionAmount = (tx) => {
+    if (typeof tx.amount === 'string') return formatAmount(tx.amount);
+    if (tx.amount && typeof tx.amount === 'object') return formatAmount(tx.amount.value);
+    return '0';
+  };
+
+  const getTransactionStatus = (tx) => {
+    if (tx.validated) {
+      if (tx.meta && tx.meta.TransactionResult === 'tesSUCCESS') return 'success';
+      return 'failed';
+    }
+    return 'pending';
+  };
+
+  const direction = getTransactionDirection(tx);
+  const amount = getTransactionAmount(tx);
+  const status = getTransactionStatus(tx);
+
+  return (
+    <TableRow hover>
+      <TableCell>
+        <Chip
+          label={tx.type}
+          size="small"
+          color={tx.type === 'Payment' ? 'primary' : 'default'}
+        />
+      </TableCell>
+      <TableCell>
+        <Box display="flex" alignItems="center" gap={1}>
+          {direction === 'incoming' ? (
+            <ArrowDownward color="success" fontSize="small" />
+          ) : direction === 'outgoing' ? (
+            <ArrowUpward color="error" fontSize="small" />
+          ) : (
+            <Info color="info" fontSize="small" />
+          )}
+          <Typography variant="body2" color={
+            direction === 'incoming' ? 'success.main' :
+            direction === 'outgoing' ? 'error.main' : 'text.secondary'
+          }>
+            {direction === 'incoming' ? 'Received' :
+             direction === 'outgoing' ? 'Sent' : 'Other'}
+          </Typography>
+        </Box>
+      </TableCell>
+      <TableCell>
+        <Typography variant="body2" fontWeight="medium">
+          {amount} XRP
+        </Typography>
+        {tx.fee && (
+          <Typography variant="caption" color="text.secondary">
+            Fee: {tx.fee} XRP
+          </Typography>
+        )}
+      </TableCell>
+      <TableCell>
+        <Typography
+          variant="body2"
+          sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}
+        >
+          {direction === 'incoming'
+            ? `${tx.account?.slice(0, 12)}...`
+            : `${tx.destination?.slice(0, 12)}...`
+          }
+        </Typography>
+        {(tx.destination_tag || tx.source_tag) && (
+          <Chip
+            label={`Tag: ${tx.destination_tag || tx.source_tag}`}
+            size="small"
+            variant="outlined"
+            sx={{ mt: 0.5 }}
+          />
+        )}
+      </TableCell>
+      <TableCell>
+        <Typography variant="body2">
+          {formatDate(tx.date)}
+        </Typography>
+        {tx.ledger_index && (
+          <Typography variant="caption" color="text.secondary">
+            Ledger: {tx.ledger_index}
+          </Typography>
+        )}
+      </TableCell>
+      <TableCell>
+        <Chip
+          label={status}
+          size="small"
+          color={getStatusColor(status)}
+        />
+      </TableCell>
+      <TableCell>
+        <Tooltip title="View in Explorer">
+          <IconButton
+            size="small"
+            onClick={() => onViewInExplorer(tx.hash)}
+          >
+            <Launch fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </TableCell>
+    </TableRow>
+  );
+});
+
+function TransactionHistory({
   wallet,
   onShowSnackbar,
   isLoading = false,
@@ -105,34 +225,12 @@ export default function TransactionHistory({
     }
   }, [wallet, loadTransactionHistory]);
 
+  // Helper functions moved to TransactionRow component for better performance
+  // Keep minimal helper for filtering logic only
   const getTransactionDirection = (tx) => {
-    if (tx.account === wallet.address) {
-      return 'outgoing';
-    } else if (tx.destination === wallet.address) {
-      return 'incoming';
-    }
+    if (tx.account === wallet.address) return 'outgoing';
+    if (tx.destination === wallet.address) return 'incoming';
     return 'other';
-  };
-
-  const getTransactionAmount = (tx) => {
-    if (typeof tx.amount === 'string') {
-      return formatAmount(tx.amount);
-    } else if (tx.amount && typeof tx.amount === 'object') {
-      // Currency amount (not XRP)
-      return `${tx.amount.value} ${tx.amount.currency}`;
-    }
-    return '0';
-  };
-
-  const getTransactionStatus = (tx) => {
-    if (tx.validated) {
-      if (tx.meta && tx.meta.TransactionResult === 'tesSUCCESS') {
-        return 'success';
-      } else {
-        return 'failed';
-      }
-    }
-    return 'pending';
   };
 
   const getStatusColor = (status) => {
@@ -281,97 +379,16 @@ export default function TransactionHistory({
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredTransactions.map((tx, index) => {
-                const direction = getTransactionDirection(tx);
-                const amount = getTransactionAmount(tx);
-                const status = getTransactionStatus(tx);
-
-                return (
-                  <TableRow key={index} hover>
-                    <TableCell>
-                      <Chip
-                        label={tx.type}
-                        size="small"
-                        color={tx.type === 'Payment' ? 'primary' : 'default'}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Box display="flex" alignItems="center" gap={1}>
-                        {direction === 'incoming' ? (
-                          <ArrowDownward color="success" fontSize="small" />
-                        ) : direction === 'outgoing' ? (
-                          <ArrowUpward color="error" fontSize="small" />
-                        ) : (
-                          <Info color="info" fontSize="small" />
-                        )}
-                        <Typography variant="body2" color={
-                          direction === 'incoming' ? 'success.main' :
-                          direction === 'outgoing' ? 'error.main' : 'text.secondary'
-                        }>
-                          {direction === 'incoming' ? 'Received' :
-                           direction === 'outgoing' ? 'Sent' : 'Other'}
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" fontWeight="medium">
-                        {amount} XRP
-                      </Typography>
-                      {tx.fee && (
-                        <Typography variant="caption" color="text.secondary">
-                          Fee: {tx.fee} XRP
-                        </Typography>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Typography
-                        variant="body2"
-                        sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}
-                      >
-                        {direction === 'incoming'
-                          ? `${tx.account?.slice(0, 12)}...`
-                          : `${tx.destination?.slice(0, 12)}...`
-                        }
-                      </Typography>
-                      {(tx.destination_tag || tx.source_tag) && (
-                        <Chip
-                          label={`Tag: ${tx.destination_tag || tx.source_tag}`}
-                          size="small"
-                          variant="outlined"
-                          sx={{ mt: 0.5 }}
-                        />
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {formatDate(tx.date)}
-                      </Typography>
-                      {tx.ledger_index && (
-                        <Typography variant="caption" color="text.secondary">
-                          Ledger: {tx.ledger_index}
-                        </Typography>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={status}
-                        size="small"
-                        color={getStatusColor(status)}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Tooltip title="View in Explorer">
-                        <IconButton
-                          size="small"
-                          onClick={() => handleViewInExplorer(tx.hash)}
-                        >
-                          <Launch fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+              {filteredTransactions.map((tx) => (
+                <TransactionRow
+                  key={tx.hash}
+                  tx={tx}
+                  walletAddress={wallet.address}
+                  onViewInExplorer={handleViewInExplorer}
+                  formatDate={formatDate}
+                  getStatusColor={getStatusColor}
+                />
+              ))}
             </TableBody>
           </Table>
         </TableContainer>
@@ -387,3 +404,6 @@ export default function TransactionHistory({
     </Box>
   );
 }
+
+// Export memoized component for optimal performance
+export default memo(TransactionHistory);
