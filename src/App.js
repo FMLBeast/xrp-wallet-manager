@@ -61,8 +61,8 @@ import {
 import MasterPasswordDialog from './components/MasterPasswordDialog';
 import ImportWalletDialog from './components/ImportWalletDialog';
 import WalletTabs from './components/WalletTabs';
-import { walletsFileExists, loadWalletStorage, addWallet, resetWalletStorage, addAddressBookEntry, renameWallet, updateWalletOrder } from './utils/walletStorage';
-import { calculateReserves } from './utils/xrplWallet';
+import { walletsFileExists, loadWalletStorage, addWallet, resetWalletStorage, addAddressBookEntry, renameWallet, updateWalletOrder, updateWalletBalance, saveWalletStorage } from './utils/walletStorage';
+import { calculateReserves, createClient, getAccountInfo, formatAmount } from './utils/xrplWallet';
 import { clearKey } from './utils/keyCache.js';
 
 // Sortable Wallet Item Component
@@ -193,7 +193,6 @@ function App() {
     setOperationLoading('networkConnection', walletName, true);
 
     try {
-      const { createClient, getAccountInfo } = require('./utils/xrplWallet');
       const client = createClient(walletData.network);
 
       await client.connect();
@@ -204,7 +203,6 @@ function App() {
       await client.disconnect();
 
       if (accountInfo.success) {
-        const { formatAmount } = require('./utils/xrplWallet');
         const balance = formatAmount(accountInfo.balance);
 
         setBalances(prev => ({
@@ -213,7 +211,6 @@ function App() {
         }));
 
         // Update stored balance
-        const { updateWalletBalance } = require('./utils/walletStorage');
         const passwordToUse = masterPasswordOverride || masterPassword;
 
         if (!passwordToUse) {
@@ -321,7 +318,6 @@ function App() {
         };
 
         // Test that we can save and load
-        const { saveWalletStorage } = require('./utils/walletStorage');
         await saveWalletStorage(password, emptyStorage);
 
         setMasterPassword(password);

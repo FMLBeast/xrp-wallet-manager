@@ -5,6 +5,7 @@
 
 import { encryptData, decryptData, decryptPythonWalletData } from './encryption';
 import { cacheKey } from './keyCache.js';
+import CryptoJS from 'crypto-js';
 
 const STORAGE_VERSION = 1;
 
@@ -69,7 +70,6 @@ export async function loadWalletStorage(masterPassword) {
 
       // Cache the encryption key for performance after successful decryption
       if (envelope.salt) {
-        const CryptoJS = require('crypto-js');
         const salt = CryptoJS.enc.Hex.parse(envelope.salt);
         cacheKey(masterPassword, salt);
       }
