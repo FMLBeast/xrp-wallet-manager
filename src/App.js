@@ -196,7 +196,7 @@ function App() {
     }
   }, [showSnackbar]);
 
-  const refreshWalletBalance = useCallback(async (walletName, walletData, masterPasswordOverride = null) => {
+  const refreshWalletBalance = useCallback(async (walletName, walletData, masterPasswordOverride = null, skipSave = false) => {
     setOperationLoading('balanceRefresh', walletName, true);
     setOperationLoading('networkConnection', walletName, true);
 
@@ -241,17 +241,19 @@ function App() {
           [walletName]: balance
         }));
 
-        // Update stored balance
-        const passwordToUse = masterPasswordOverride || masterPassword;
+        // Update stored balance (skip during initial unlock to avoid cascading PBKDF2 operations)
+        if (!skipSave) {
+          const passwordToUse = masterPasswordOverride || masterPassword;
 
-        if (!passwordToUse) {
-          console.warn(`No master password available for updating balance of ${walletName}`);
-          return;
+          if (!passwordToUse) {
+            console.warn(`No master password available for updating balance of ${walletName}`);
+            return;
+          }
+
+          await updateWalletBalance(passwordToUse, walletName, balance);
+
+          showSnackbar(`Balance updated for ${walletName}`, 'success');
         }
-
-        await updateWalletBalance(passwordToUse, walletName, balance);
-
-        showSnackbar(`Balance updated for ${walletName}`, 'success');
       }
     } catch (error) {
       console.error(`Failed to refresh balance for ${walletName}:`, error);
@@ -388,9 +390,9 @@ function App() {
           const walletNames = Object.keys(storage.wallets || {});
 
           // Refresh all balances in parallel for much faster startup
-          // Web Worker handles PBKDF2 operations async, so no UI blocking
+          // Skip saving during initial unlock to avoid cascading PBKDF2 operations
           const refreshPromises = walletNames.map(walletName =>
-            refreshWalletBalance(walletName, storage.wallets[walletName], password)
+            refreshWalletBalance(walletName, storage.wallets[walletName], password, true)
               .catch(error => {
                 console.error(`[Performance] Failed to refresh balance for ${walletName}:`, error);
                 // Don't throw to avoid stopping other wallet refreshes
