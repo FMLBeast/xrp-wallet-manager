@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import {
   Box,
   Card,
@@ -47,6 +47,7 @@ import AddressBookManager from './AddressBookManager';
 import TransactionHistory from './TransactionHistory';
 import MultiSigTab from './MultiSigTab';
 import PasswordPromptDialog from './PasswordPromptDialog';
+import SendTab from './SendTab';
 
 // Import utilities
 import {
@@ -658,181 +659,24 @@ const WalletTabs = ({
 
       case 1: // Send
         return (
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={8}>
-              <Card elevation={3}>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Send XRP
-                  </Typography>
-
-                  <Box mb={2}>
-                    <TextField
-                      fullWidth
-                      label="Destination Address"
-                      placeholder="rXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-                      value={sendForm.destination}
-                      onChange={(e) => handleSendFormChange('destination', e.target.value)}
-                      error={!!sendErrors.destination}
-                      helperText={sendErrors.destination}
-                      margin="normal"
-                    />
-
-                    {/* QR Code Import Button */}
-                    <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <input
-                        accept="image/*"
-                        style={{ display: 'none' }}
-                        id="qr-upload-button"
-                        type="file"
-                        onChange={handleQRCodeScan}
-                      />
-                      <label htmlFor="qr-upload-button">
-                        <Button
-                          variant="outlined"
-                          component="span"
-                          startIcon={qrScanLoading ? <CircularProgress size={16} /> : <QrCode2 />}
-                          disabled={qrScanLoading}
-                          size="small"
-                        >
-                          {qrScanLoading ? 'Scanning...' : 'Scan QR Code'}
-                        </Button>
-                      </label>
-                      <Typography variant="caption" color="text.secondary">
-                        Upload QR code image to auto-fill form
-                      </Typography>
-                    </Box>
-                    {addressBook.length > 0 && (
-                      <FormControl fullWidth margin="normal">
-                        <InputLabel>Quick Select from Address Book</InputLabel>
-                        <Select
-                          value={selectedAddressBookItem}
-                          onChange={(e) => {
-                            const selectedLabel = e.target.value;
-                            setSelectedAddressBookItem(selectedLabel);
-
-                            const contact = addressBook.find(c => c.label === selectedLabel);
-                            if (contact) {
-                              handleSendFormChange('destination', contact.address);
-                              if (contact.destination_tag) {
-                                handleSendFormChange('destinationTag', contact.destination_tag);
-                              }
-                            }
-                          }}
-                          label="Quick Select from Address Book"
-                        >
-                          {addressBook.map((contact) => (
-                            <MenuItem key={contact.label} value={contact.label}>
-                              <Box>
-                                <Typography variant="body2">{contact.label}</Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  {contact.address.slice(0, 20)}...
-                                  {contact.destination_tag && ` (Tag: ${contact.destination_tag})`}
-                                </Typography>
-                              </Box>
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    )}
-                  </Box>
-
-                  <TextField
-                    fullWidth
-                    label="Amount"
-                    placeholder="0.000000"
-                    value={sendForm.amount}
-                    onChange={(e) => handleSendFormChange('amount', e.target.value)}
-                    error={!!sendErrors.amount}
-                    helperText={sendErrors.amount}
-                    margin="normal"
-                    type="number"
-                    inputProps={{ step: '0.000001', min: '0' }}
-                    InputProps={{
-                      endAdornment: <InputAdornment position="end">XRP</InputAdornment>
-                    }}
-                  />
-
-                  <TextField
-                    fullWidth
-                    label="Destination Tag (Optional)"
-                    placeholder="Enter destination tag..."
-                    value={sendForm.destinationTag}
-                    onChange={(e) => handleSendFormChange('destinationTag', e.target.value)}
-                    error={!!sendErrors.destinationTag}
-                    helperText={sendErrors.destinationTag || 'Required by some exchanges'}
-                    margin="normal"
-                    type="number"
-                  />
-
-                  <TextField
-                    fullWidth
-                    label="Memo (Optional)"
-                    placeholder="Transaction description..."
-                    value={sendForm.memo}
-                    onChange={(e) => handleSendFormChange('memo', e.target.value)}
-                    margin="normal"
-                    multiline
-                    rows={2}
-                  />
-
-                  <Box mt={3} display="flex" justifyContent="flex-end">
-                    <Button
-                      variant="contained"
-                      onClick={handlePrepareSend}
-                      disabled={sendLoading || isOperationLoading('sendingTransaction') || !sendForm.destination || !sendForm.amount}
-                      startIcon={(sendLoading || isOperationLoading('sendingTransaction')) ? <CircularProgress size={16} color="inherit" /> : <Send />}
-                      size="large"
-                    >
-                      {(sendLoading || isOperationLoading('sendingTransaction')) ? 'Preparing...' : 'Send XRP'}
-                    </Button>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12} md={4}>
-              <Card elevation={2}>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Transaction Summary
-                  </Typography>
-
-                  <Table size="small">
-                    <TableBody>
-                      <TableRow>
-                        <TableCell>Current Balance</TableCell>
-                        <TableCell>
-                          <Box display="flex" alignItems="center" gap={1}>
-                            {isOperationLoading('accountInfo', wallet?.name) ? 'Loading...' : `${balance} XRP`}
-                            {isOperationLoading('accountInfo', wallet?.name) && (
-                              <CircularProgress size={16} />
-                            )}
-                          </Box>
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>Send Amount</TableCell>
-                        <TableCell>{sendForm.amount || '0'} XRP</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>Network Fee</TableCell>
-                        <TableCell>~0.000012 XRP</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell><strong>Remaining</strong></TableCell>
-                        <TableCell>
-                          <strong>
-                            {(parseFloat(balance || 0) - parseFloat(sendForm.amount || 0) - 0.000012).toFixed(6)} XRP
-                          </strong>
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
+          <SendTab
+            wallet={wallet}
+            balance={balance}
+            sendForm={sendForm}
+            onSendFormChange={handleSendFormChange}
+            sendErrors={sendErrors}
+            addressBook={addressBook}
+            selectedAddressBookItem={selectedAddressBookItem}
+            onSelectedAddressBookItemChange={setSelectedAddressBookItem}
+            qrScanLoading={qrScanLoading}
+            onQRCodeScan={handleQRCodeScan}
+            sendLoading={sendLoading}
+            onSendTransaction={handlePrepareSend}
+            showConfirmDialog={showConfirmDialog}
+            onShowConfirmDialog={setShowConfirmDialog}
+            preparedTransaction={preparedTransaction}
+            onShowSnackbar={onShowSnackbar}
+          />
         );
 
       case 2: // Receive
@@ -1066,4 +910,39 @@ const WalletTabs = ({
   );
 };
 
-export default WalletTabs;
+// Custom comparison function for React.memo to optimize re-renders
+const WalletTabsComparison = (prevProps, nextProps) => {
+  // Deep comparison of key props that affect rendering
+  const keysToCompare = [
+    'selectedTab',
+    'balance',
+    'addressBook',
+    'masterPassword'
+  ];
+
+  // Check primitive props
+  for (const key of keysToCompare) {
+    if (prevProps[key] !== nextProps[key]) {
+      return false; // Re-render needed
+    }
+  }
+
+  // Check wallet object properties (but not the entire object reference)
+  if (prevProps.wallet?.address !== nextProps.wallet?.address ||
+      prevProps.wallet?.name !== nextProps.wallet?.name ||
+      prevProps.wallet?.network !== nextProps.wallet?.network) {
+    return false; // Re-render needed
+  }
+
+  // Check addressBook length and key properties (shallow comparison)
+  if (prevProps.addressBook?.length !== nextProps.addressBook?.length) {
+    return false;
+  }
+
+  // For callback functions, we assume they're stable if the component using them
+  // is properly memoizing them with useCallback
+
+  return true; // No re-render needed
+};
+
+export default memo(WalletTabs, WalletTabsComparison);
